@@ -1,3 +1,4 @@
+import GameLog from './GameLog'
 import { useEffect, useState } from 'react'
 import StatsExplorer, { type Metric } from './StatsExplorer'
 import { gameDate, newest, seasonOf, type Profile, type PublicGame } from './model'
@@ -8,11 +9,11 @@ export function Court() {
 }
 
 export default function PublicView({ profile, games }: { profile: Profile | null; games: PublicGame[] }) {
-  const [chart, setChart] = useState<Metric>('pts')
+  const [chart, setChart] = useState<Metric>()
   useEffect(() => {
     if (location.hash === '#stats-explorer') document.getElementById('stats-explorer')?.scrollIntoView()
   }, [])
-  const openChart = (metric: typeof chart) => {
+  const openChart = (metric: Metric) => {
     setChart(metric)
     document.getElementById('stats-explorer')?.scrollIntoView({ block: 'start' })
   }
@@ -34,7 +35,7 @@ export default function PublicView({ profile, games }: { profile: Profile | null
         <h1>{player?.[0] ?? 'Basketball'}<br/><em>{player?.slice(1).join(' ') || (player ? '' : 'Tracker')}</em></h1>
         {profile && <p>{profile.team}<span className="hero-dot">·</span>{profile.position}</p>}
       </div>
-      {showPortrait && <img className="hero-portrait" src={rhyderJumper} alt="Rhyder, wearing No. 24, rising for a three-point jump shot" width="436" height="900" />}
+      {showPortrait && <img className="hero-portrait" src={rhyderJumper} alt="Rhyder, wearing No. 24, rising for a three-point jump shot" width="675" height="900" />}
       {profile && <div className="jersey" aria-label={'Jersey number ' + profile.number}><span>NO.</span>{profile.number}</div>}
     </section>
     <section className="season-section" aria-labelledby="season-title">
@@ -49,19 +50,7 @@ export default function PublicView({ profile, games }: { profile: Profile | null
       </div>
     </section>
     <div className="public-grid">
-      <section className="panel game-log" aria-labelledby="log-title">
-        <header className="panel-head"><div><h2 id="log-title">Game log</h2><p>Published game results</p></div><span className="panel-icon" aria-hidden="true">≡</span></header>
-        {sorted.length ? <>
-          <table className="game-table">
-            <thead><tr><th scope="col">Opponent</th><th scope="col">Result</th><th scope="col">PTS</th><th scope="col">REB</th><th scope="col">AST</th><th scope="col" className="wide-stat">STL</th><th scope="col" className="wide-stat">BLK</th></tr></thead>
-            <tbody>{sorted.map(game => {
-              const result = game.us > game.them ? 'W' : game.us < game.them ? 'L' : 'T'
-              return <tr key={game.id}><th scope="row">{game.opponent}<small>{gameDate(game.date)}</small></th><td><span className={'result ' + result}>{result}</span> <span className="score">{game.us}–{game.them}</span></td><td className="points">{game.pts}</td><td>{game.reb}</td><td>{game.ast}</td><td className="wide-stat">{game.stl}</td><td className="wide-stat">{game.blk}</td></tr>
-            })}</tbody>
-          </table>
-          <details className="mobile-defense"><summary>Steals and blocks</summary><ul>{sorted.map(game => <li key={game.id}>{game.opponent} · {game.stl} STL · {game.blk} BLK</li>)}</ul></details>
-        </> : <p className="empty">Published games will appear here.</p>}
-      </section>
+      <GameLog games={allGames} />
       <section className="panel trend" aria-labelledby="trend-title">
         <header className="panel-head"><div><h2 id="trend-title">Scoring trend</h2><p>Points over the last {recent.length || 5} games</p></div><button type="button" onClick={() => openChart('pts')}>All charts</button></header>
         {recent.length ? <>
