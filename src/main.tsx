@@ -15,7 +15,27 @@ function Ball() {
   return <span className="brand-ball" aria-hidden="true"><i/><b/></span>
 }
 
+const themes = ['System', 'Light', 'Dark'] as const
+type Theme = typeof themes[number]
+const themeKey = 'courtside-theme:' + new URL(import.meta.env.BASE_URL, location.href).pathname
+
+function storedTheme(): Theme {
+  try {
+    return themes.find(theme => theme === localStorage.getItem(themeKey)) ?? 'System'
+  } catch {
+    return 'System'
+  }
+}
+
 function App() {
+  const [theme, setTheme] = useState(storedTheme)
+  const changeTheme = (value: string) => {
+    const chosen = themes.find(item => item === value)
+    if (!chosen) return
+    document.documentElement.dataset.theme = chosen.toLowerCase()
+    setTheme(chosen)
+    try { localStorage.setItem(themeKey, chosen) } catch { /* Use the choice for this visit. */ }
+  }
   const [admin, setAdmin] = useState(location.hash === '#admin')
   const [session, setSession] = useState<Session | null>(null)
   const [verified, setVerified] = useState<string>()
@@ -150,6 +170,9 @@ function App() {
         <a href="#stats-explorer">Stats</a>
         <a href="#admin" aria-current={admin ? 'page' : undefined}>Admin</a>
       </nav>
+      <select className="theme-select" aria-label="Color theme" value={theme} onChange={event => changeTheme(event.target.value)}>
+        {themes.map(item => <option key={item}>{item}</option>)}
+      </select>
     </div></header>
     <main className="shell">
       {(notice || (admin && scope && syncError)) && <div className="notice" role="alert">{notice || 'Sync issue. ' + syncError}</div>}
@@ -163,6 +186,7 @@ function App() {
   </>
 }
 
+document.documentElement.dataset.theme = storedTheme().toLowerCase()
 createRoot(document.getElementById('root')!).render(<App />)
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   void navigator.serviceWorker.register(new URL('sw.js', document.baseURI)).catch(console.error)

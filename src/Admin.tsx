@@ -66,6 +66,8 @@ function BoxForm({ initial, busy, onSave, onCancel }: {
   </form>
 }
 
+const negativeStats = new Set<Stat>(['missTwo', 'missThree', 'missFree', 'tov', 'foul'])
+
 function Live({ game, busy, save }: { game: Game; busy: boolean; save: (game: Game) => void }) {
   const counts = totals(game)
   const add = (stat: Stat) => save({ ...game, events: [...game.events, { id: crypto.randomUUID(), stat, period: game.period, time: Date.now() }] })
@@ -86,7 +88,7 @@ function Live({ game, busy, save }: { game: Game; busy: boolean; save: (game: Ga
     </div>
     <div className="live-totals"><strong>{points(counts)} PTS</strong><span>{counts.reb} REB</span><span>{counts.ast} AST</span><span>{counts.stl} STL</span><span>{counts.blk} BLK</span></div>
     <h3>Log a play</h3>
-    <div className="event-buttons" aria-label="Live stat buttons">{stats.map((stat, index) => <button className={index < 3 ? 'made' : ''} key={stat} disabled={busy} onClick={() => add(stat)}><span>{statLabels[stat]}</span><small aria-label={counts[stat] + ' recorded'}>{counts[stat]}</small></button>)}</div>
+    <div className="event-buttons" aria-label="Live stat buttons">{stats.map(stat => <button className={negativeStats.has(stat) ? 'negative' : 'positive'} key={stat} disabled={busy} onClick={() => add(stat)}><span>{statLabels[stat]}</span><small aria-label={counts[stat] + ' recorded'}>{counts[stat]}</small></button>)}</div>
     <div className="action-row"><button disabled={busy || !game.events.length} onClick={() => save({ ...game, events: game.events.slice(0, -1) })}>Undo last play</button><button className="primary" disabled={busy} onClick={() => save({ ...game, status: 'final' })}>Finalize game</button></div>
   </>
 }
