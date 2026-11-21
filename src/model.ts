@@ -16,6 +16,7 @@ export type PublicGame = Pick<Game, 'id' | 'date' | 'opponent' | 'us' | 'them'> 
 }
 export type Profile = { name: string; team: string; number: string; position: string; season: string }
 export type Command = { id: string; kind: 'save' | 'publish' | 'unpublish'; game: Game }
+export type GameWrite = Command['kind'] | 'save-and-publish'
 export const stats = Object.keys(statLabels) as Stat[]
 export const emptyCounts = () => Object.fromEntries(stats.map(stat => [stat, 0])) as Counts
 export function totals(game: Game): Counts {

@@ -11,7 +11,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open the URL printed in the terminal. Select **Admin** to start a live game or enter a box score. Finalize a live game and choose **Approve & publish** to see its stats appear in the profile. The fictional Jordan Miller and five sample games are included. Demo changes stay in this browser's IndexedDB and do not transfer to production.
+Open the URL printed in the terminal. Select **Admin** to start a live game or enter a box score. Finalize a live game, select **Edit**, and choose **Save and publish** to see its stats appear in the profile. The fictional Jordan Miller and five sample games are included. Demo changes stay in this browser's IndexedDB and do not transfer to production.
 
 To try reloading offline, use `pnpm build` and `pnpm preview`. Open the preview online first and wait for the service worker to finish caching before going offline. The Vite development server does not register a service worker.
 
@@ -33,7 +33,7 @@ To try reloading offline, use `pnpm build` and `pnpm preview`. Open the preview 
    ```
 
 4. Copy `.env.example` to `.env.local`. Set `VITE_SUPABASE_URL` to the project URL and `VITE_SUPABASE_PUBLISHABLE_KEY` to the project's publishable key. The values are bundled into the site. Keep the secret and service-role keys out of the frontend and GitHub repository.
-5. Run `pnpm dev`. In **Admin**, sign in with the account from step 2. Save a private game, open the profile in a separate browser profile, then verify the game appears only after approval. Use **Unpublish** to remove its public snapshot.
+5. Run `pnpm dev`. In **Admin**, sign in with the account from step 2. Save a private game, open the profile in a separate browser profile, then verify the game appears only after approval. Use **Edit** on a completed game to correct its box score. **Save without publishing** keeps the current public snapshot visible, and **Save and publish** replaces it. The original play log stays available for games tracked live.
 
 [Supabase password authentication](https://supabase.com/docs/guides/auth/passwords) · [Supabase row-level security](https://supabase.com/docs/guides/database/postgres/row-level-security)
 

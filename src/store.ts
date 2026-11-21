@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { demoGames, demoProfile, demoPublic, summary, type Game, type Command, type Profile, type PublicGame } from './model'
+import { demoGames, demoProfile, demoPublic, summary, type Game, type Command, type GameWrite, type Profile, type PublicGame } from './model'
 
 const url = import.meta.env.VITE_SUPABASE_URL
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
@@ -46,16 +46,23 @@ export async function local(scope: string, change?: (state: LocalState) => void)
   })
 }
 
-export function record(scope: string, kind: Command['kind'], game: Game) {
+export function record(scope: string, kind: GameWrite, game: Game) {
   return local(scope, state => {
     const current = state.games.find(item => item.id === game.id)
     if ((current?.rev ?? 0) !== game.rev) throw new Error('This game changed. Reopen it and try again.')
-    const next = { ...game, rev: game.rev + 1, published: kind === 'save' ? game.published : kind === 'publish' }
+    if ((kind === 'publish' || kind === 'save-and-publish') && game.status !== 'final') {
+      throw new Error('Finalize the game before publishing.')
+    }
+    const actions: Command['kind'][] = kind === 'save-and-publish' ? ['save', 'publish'] : [kind]
+    let next = game
+    for (const action of actions) {
+      next = { ...next, rev: next.rev + 1, published: action === 'save' ? next.published : action === 'publish' }
+      if (scope !== 'demo') state.queue.push({ id: crypto.randomUUID(), kind: action, game: next })
+    }
     state.games = [next, ...state.games.filter(item => item.id !== game.id)]
-    if (scope !== 'demo') state.queue.push({ id: crypto.randomUUID(), kind, game: next })
-    else if (kind !== 'save') {
+    if (scope === 'demo' && kind !== 'save') {
       state.publicGames = state.publicGames.filter(item => item.id !== game.id)
-      if (kind === 'publish') state.publicGames.push(summary(next))
+      if (next.published) state.publicGames.push(summary(next))
     }
   })
 }

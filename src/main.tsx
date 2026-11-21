@@ -4,7 +4,7 @@ import type { Session } from '@supabase/supabase-js'
 import Admin, { SignIn } from './Admin'
 import PublicView from './PublicView'
 import { discardPending, fetchPublic, local, record, supabase, sync, type LocalState } from './store'
-import type { Command, Game } from './model'
+import type { GameWrite, Game } from './model'
 import './styles.css'
 
 const demo = !supabase
@@ -108,7 +108,7 @@ function App() {
     return () => { active = false; clearInterval(interval) }
   }, [scope, online, refresh])
 
-  const write = async (kind: Command['kind'], game: Game) => {
+  const write = async (kind: GameWrite, game: Game) => {
     if (!scope) return false
     try {
       const state = await record(scope, kind, game)

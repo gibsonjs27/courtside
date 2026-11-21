@@ -1,8 +1,8 @@
-import { useState, type FormEvent } from 'react'
-import { gameDate, newest, newGame, points, stats, statLabels, totals, type Command, type Game, type Stat } from './model'
+import { useRef, useState, type FormEvent } from 'react'
+import { gameDate, newest, newGame, points, stats, statLabels, totals, type GameWrite, type Game, type Stat } from './model'
 import type { LocalState } from './store'
 
-type Write = (kind: Command['kind'], game: Game) => Promise<boolean>
+type Write = (kind: GameWrite, game: Game) => Promise<boolean>
 
 export function SignIn({ onSignIn }: { onSignIn: (email: string, password: string) => Promise<void> }) {
   const [busy, setBusy] = useState(false)
@@ -22,7 +22,9 @@ export function SignIn({ onSignIn }: { onSignIn: (email: string, password: strin
   </section>
 }
 
-function BoxForm({ initial, busy, onSave }: { initial: Game; busy: boolean; onSave: (game: Game) => void }) {
+function BoxForm({ initial, busy, onSave, onCancel }: {
+  initial: Game; busy: boolean; onSave: (game: Game, kind: GameWrite) => void; onCancel?: () => void
+}) {
   const [counts, setCounts] = useState(initial.counts)
   const box = initial.mode === 'box'
   const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -35,8 +37,10 @@ function BoxForm({ initial, busy, onSave }: { initial: Game; busy: boolean; onSa
       field.reportValidity()
       return
     }
+    const publish = (event.nativeEvent as SubmitEvent).submitter?.getAttribute('value') === 'publish'
     onSave({ ...initial, counts, opponent, date: String(data.get('date')),
-      us: Number(data.get('us')), them: Number(data.get('them')), notes: String(data.get('notes')) })
+      us: Number(data.get('us')), them: Number(data.get('them')), notes: String(data.get('notes')) },
+    publish ? 'save-and-publish' : 'save')
   }
   return <form className="game-form" onSubmit={submit}>
     <div className="form-grid">
@@ -49,7 +53,11 @@ function BoxForm({ initial, busy, onSave }: { initial: Game; busy: boolean; onSa
       <label key={stat}>{statLabels[stat]}<input required type="number" inputMode="numeric" min="0" max="999" value={counts[stat]} onChange={event => setCounts({ ...counts, [stat]: event.target.valueAsNumber || 0 })} /></label>
     )}</div></>}
     <label>Private notes<textarea name="notes" rows={2} maxLength={2000} defaultValue={initial.notes} /></label>
-    <button className="primary" disabled={busy}>{initial.rev ? 'Save changes' : box ? 'Save post-game entry' : 'Start tracking'}</button>
+    <div className="action-row">
+      <button disabled={busy} className={box ? undefined : 'primary'}>{box ? (initial.published ? 'Save without publishing' : 'Save privately') : initial.rev ? 'Save changes' : 'Start tracking'}</button>
+      {box && <button className="primary" value="publish" disabled={busy}>Save and publish</button>}
+      {onCancel && <button type="button" disabled={busy} onClick={onCancel}>Cancel</button>}
+    </div>
   </form>
 }
 
@@ -84,9 +92,10 @@ export default function Admin({ state, write, retry, discard, onSignOut, offline
   const [selected, setSelected] = useState<string>()
   const [draft, setDraft] = useState<Game>()
   const [busy, setBusy] = useState(false)
+  const editor = useRef<HTMLElement>(null)
   const game = state.games.find(item => item.id === selected)
   const current = draft ?? game
-  const save = async (kind: Command['kind'], next: Game) => {
+  const save = async (kind: GameWrite, next: Game) => {
     setBusy(true)
     try {
       if (await write(kind, next)) {
@@ -98,6 +107,7 @@ export default function Admin({ state, write, retry, discard, onSignOut, offline
   const openDraft = (mode: Game['mode']) => {
     setDraft(newGame(mode))
     setSelected(undefined)
+    editor.current?.scrollIntoView({ block: 'nearest' })
   }
   const exportQueue = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify(state.queue, null, 2)], { type: 'application/json' }))
@@ -120,27 +130,30 @@ export default function Admin({ state, write, retry, discard, onSignOut, offline
     {!!state.queue.length && <details className="queue-tools"><summary>Pending changes</summary><p>Changes are saved on this device. They sync when this workspace is online.</p><div className="action-row"><button onClick={retry}>Retry sync</button><button onClick={exportQueue}>Export queue</button><button disabled={offline || busy} onClick={discard}>Discard pending changes</button></div></details>}
     <div className="admin-grid">
       <section className="panel archive"><header className="panel-head"><h2>My games</h2></header>
-        {newest(state.games).map(item => <button key={item.id} className={'archive-item ' + (selected === item.id ? 'selected' : '')} onClick={() => { setSelected(item.id); setDraft(undefined) }} disabled={busy}>
+        {newest(state.games).map(item => <button key={item.id} className={'archive-item ' + (selected === item.id ? 'selected' : '')} onClick={() => { setSelected(item.id); setDraft(undefined); editor.current?.scrollIntoView({ block: 'nearest' }) }} disabled={busy}>
           <strong>{item.opponent}</strong><span>{gameDate(item.date)} · {item.status === 'live' ? 'In progress' : item.published ? 'Published' : 'Private'}</span>
         </button>)}
         {!state.games.length && <p className="empty">Start a live game or enter a completed game.</p>}
       </section>
-      <section className="panel editor">
+      <section className="panel editor" ref={editor}>
         {!current ? <div className="editor-body"><h2>Ready to track?</h2><p>Select a game or start a new one.</p></div> : <>
           <header className="panel-head"><div><h2>{current.opponent || (current.mode === 'live' ? 'New live game' : 'Post-game entry')}</h2><p>{current.rev ? (current.status === 'live' ? 'In progress' : 'Final') + ' · ' + (current.published ? 'Published' : 'Private') : 'Game details'}</p></div></header>
           <div className="editor-body">
-            {game?.mode === 'live' && game.status === 'live' && <Live game={game} busy={busy} save={next => void save('save', next)} />}
-            {game?.mode === 'live' && game.status === 'final' && <div className="live-totals"><strong>{points(totals(game))} PTS</strong><span>{totals(game).reb} REB</span><span>{totals(game).ast} AST</span></div>}
-            {game?.mode === 'live' && <details className="play-log"><summary>Play log ({game.events.length})</summary>
-              <ol reversed>{[...game.events].reverse().map(play => <li key={play.id}>{play.period <= 4 ? 'Q' + play.period : 'OT' + (play.period - 4)} · {statLabels[play.stat]} · {new Date(play.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</li>)}</ol>
-            </details>}
-            {game?.mode === 'live' ? <details className="edit-details"><summary>Edit game details and score</summary><BoxForm key={current.id + current.rev} initial={current} busy={busy} onSave={next => void save('save', next)} /></details>
-              : <BoxForm key={current.id + current.rev} initial={current} busy={busy} onSave={next => void save('save', next)} />}
-            {game?.status === 'final' && <div className="publish-box"><h3>Public stats</h3>
-              <p>Publish the final score and points, rebounds, assists, steals and blocks. Changes to a published game go live when you republish.</p>
-              <div className="action-row"><button className="primary" disabled={busy} onClick={() => void save('publish', game)}>{game.published ? 'Republish stats' : 'Approve & publish'}</button>
-              {game.published && <button disabled={busy} onClick={() => void save('unpublish', game)}>Unpublish</button>}</div>
-            </div>}
+            {draft ? <BoxForm key={draft.id + draft.rev} initial={draft} busy={busy}
+              onSave={(next, kind) => void save(kind, next)} onCancel={() => setDraft(undefined)} /> : game && <>
+              {game.status === 'live' ? <>
+                <Live game={game} busy={busy} save={next => void save('save', next)} />
+                <details className="edit-details"><summary>Edit game details and score</summary>
+                  <BoxForm key={game.id + game.rev} initial={game} busy={busy} onSave={next => void save('save', next)} />
+                </details>
+              </> : <>
+                <div className="live-totals"><strong>{points(totals(game))} PTS</strong><span>{totals(game).reb} REB</span><span>{totals(game).ast} AST</span><span>{totals(game).stl} STL</span><span>{totals(game).blk} BLK</span></div>
+                <button className="primary" disabled={busy} onClick={() => setDraft({ ...game, mode: 'box', counts: totals(game) })}>Edit</button>
+              </>}
+              {(game.mode === 'live' || game.events.length > 0) && <details className="play-log"><summary>Play log ({game.events.length})</summary>
+                <ol reversed>{[...game.events].reverse().map(play => <li key={play.id}>{play.period <= 4 ? 'Q' + play.period : 'OT' + (play.period - 4)} · {statLabels[play.stat]} · {new Date(play.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</li>)}</ol>
+              </details>}
+            </>}
           </div>
         </>}
       </section>
