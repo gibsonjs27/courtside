@@ -1,0 +1,149 @@
+import { useState, type FormEvent } from 'react'
+import { gameDate, newest, newGame, points, stats, statLabels, totals, type Command, type Game, type Stat } from './model'
+import type { LocalState } from './store'
+
+type Write = (kind: Command['kind'], game: Game) => Promise<boolean>
+
+export function SignIn({ onSignIn }: { onSignIn: (email: string, password: string) => Promise<void> }) {
+  const [busy, setBusy] = useState(false)
+  return <section className="panel credentials">
+    <h1>Admin sign-in</h1><p>Sign in to track games and manage public stats.</p>
+    <form onSubmit={async event => {
+      event.preventDefault()
+      const data = new FormData(event.currentTarget)
+      setBusy(true)
+      try { await onSignIn(String(data.get('email')), String(data.get('password'))) }
+      finally { setBusy(false) }
+    }}>
+      <label>Email<input name="email" type="email" autoComplete="username" required /></label>
+      <label>Password<input name="password" type="password" autoComplete="current-password" required /></label>
+      <button className="primary" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
+    </form>
+  </section>
+}
+
+function BoxForm({ initial, busy, onSave }: { initial: Game; busy: boolean; onSave: (game: Game) => void }) {
+  const [counts, setCounts] = useState(initial.counts)
+  const box = initial.mode === 'box'
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    const opponent = String(data.get('opponent')).trim()
+    if (!opponent) {
+      const field = event.currentTarget.elements.namedItem('opponent') as HTMLInputElement
+      field.setCustomValidity('Enter an opponent.')
+      field.reportValidity()
+      return
+    }
+    onSave({ ...initial, counts, opponent, date: String(data.get('date')),
+      us: Number(data.get('us')), them: Number(data.get('them')), notes: String(data.get('notes')) })
+  }
+  return <form className="game-form" onSubmit={submit}>
+    <div className="form-grid">
+      <label>Opponent<input required name="opponent" maxLength={80} defaultValue={initial.opponent} onInput={event => event.currentTarget.setCustomValidity('')} /></label>
+      <label>Game date<input required name="date" type="date" defaultValue={initial.date} /></label>
+      <label>Team score<input required name="us" type="number" inputMode="numeric" min="0" max="999" defaultValue={initial.us} /></label>
+      <label>Opponent score<input required name="them" type="number" inputMode="numeric" min="0" max="999" defaultValue={initial.them} /></label>
+    </div>
+    {box && <><h3>Box score <span>{points(counts)} points</span></h3><div className="form-grid stat-inputs">{stats.map(stat =>
+      <label key={stat}>{statLabels[stat]}<input required type="number" inputMode="numeric" min="0" max="999" value={counts[stat]} onChange={event => setCounts({ ...counts, [stat]: event.target.valueAsNumber || 0 })} /></label>
+    )}</div></>}
+    <label>Private notes<textarea name="notes" rows={2} maxLength={2000} defaultValue={initial.notes} /></label>
+    <button className="primary" disabled={busy}>{initial.rev ? 'Save changes' : box ? 'Save post-game entry' : 'Start tracking'}</button>
+  </form>
+}
+
+function Live({ game, busy, save }: { game: Game; busy: boolean; save: (game: Game) => void }) {
+  const counts = totals(game)
+  const add = (stat: Stat) => save({ ...game, events: [...game.events, { id: crypto.randomUUID(), stat, period: game.period, time: Date.now() }] })
+  const score = (side: 'us' | 'them', label: string) => <div>
+    <small>{label.toUpperCase()}</small><strong>{game[side]}</strong>
+    <div className="score-controls">
+      <button aria-label={'Subtract one from ' + label} disabled={busy || game[side] === 0} onClick={() => save({ ...game, [side]: game[side] - 1 })}>−</button>
+      <button aria-label={'Add one to ' + label} disabled={busy || game[side] === 999} onClick={() => save({ ...game, [side]: game[side] + 1 })}>+</button>
+    </div>
+  </div>
+  return <>
+    <div className="scoreboard">
+      {score('us', 'team score')}
+      <div><label>Period<select value={game.period} disabled={busy} onChange={event => save({ ...game, period: Number(event.target.value) })}>
+        {Array.from({ length: 12 }, (_, index) => <option key={index} value={index + 1}>{index < 4 ? 'Q' + (index + 1) : 'OT' + (index - 3)}</option>)}
+      </select></label></div>
+      {score('them', 'opponent score')}
+    </div>
+    <div className="live-totals"><strong>{points(counts)} PTS</strong><span>{counts.reb} REB</span><span>{counts.ast} AST</span><span>{counts.stl} STL</span><span>{counts.blk} BLK</span></div>
+    <h3>Log a play</h3>
+    <div className="event-buttons">{stats.map((stat, index) => <button className={index < 3 ? 'made' : ''} key={stat} disabled={busy} onClick={() => add(stat)}>{statLabels[stat]}<small>{counts[stat]}</small></button>)}</div>
+    <div className="action-row"><button disabled={busy || !game.events.length} onClick={() => save({ ...game, events: game.events.slice(0, -1) })}>Undo last play</button><button className="primary" disabled={busy} onClick={() => save({ ...game, status: 'final' })}>Finalize game</button></div>
+  </>
+}
+
+export default function Admin({ state, write, retry, discard, onSignOut, offline }: {
+  state: LocalState; write: Write; retry: () => void; discard: () => void; onSignOut?: () => void; offline: boolean
+}) {
+  const [selected, setSelected] = useState<string>()
+  const [draft, setDraft] = useState<Game>()
+  const [busy, setBusy] = useState(false)
+  const game = state.games.find(item => item.id === selected)
+  const current = draft ?? game
+  const save = async (kind: Command['kind'], next: Game) => {
+    setBusy(true)
+    try {
+      if (await write(kind, next)) {
+        setSelected(next.id)
+        setDraft(undefined)
+      }
+    } finally { setBusy(false) }
+  }
+  const openDraft = (mode: Game['mode']) => {
+    setDraft(newGame(mode))
+    setSelected(undefined)
+  }
+  const exportQueue = () => {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(state.queue, null, 2)], { type: 'application/json' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'courtside-pending-private.json'
+    link.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+  return <>
+    <section className="admin-banner">
+      <div><span className="season"><span/> {onSignOut ? 'Private workspace' : 'Demo workspace'}</span><h1>Game tracker</h1><p>Track a game live or enter the box score afterward.</p></div>
+      {onSignOut && <button onClick={onSignOut}>Sign out</button>}
+    </section>
+    <div className="admin-actions">
+      <button className="primary" onClick={() => openDraft('live')} disabled={busy}>＋ New live game</button>
+      <button onClick={() => openDraft('box')} disabled={busy}>Post-game entry</button>
+      <span role="status">{state.queue.length ? state.queue.length + ' pending sync' : offline ? 'Offline' : onSignOut ? 'Synced' : 'Saved on this device'}</span>
+    </div>
+    {!!state.queue.length && <details className="queue-tools"><summary>Pending changes</summary><p>Changes are saved on this device. They sync when this workspace is online.</p><div className="action-row"><button onClick={retry}>Retry sync</button><button onClick={exportQueue}>Export queue</button><button disabled={offline || busy} onClick={discard}>Discard pending changes</button></div></details>}
+    <div className="admin-grid">
+      <section className="panel archive"><header className="panel-head"><h2>My games</h2></header>
+        {newest(state.games).map(item => <button key={item.id} className={'archive-item ' + (selected === item.id ? 'selected' : '')} onClick={() => { setSelected(item.id); setDraft(undefined) }} disabled={busy}>
+          <strong>{item.opponent}</strong><span>{gameDate(item.date)} · {item.status === 'live' ? 'In progress' : item.published ? 'Published' : 'Private'}</span>
+        </button>)}
+        {!state.games.length && <p className="empty">Start a live game or enter a completed game.</p>}
+      </section>
+      <section className="panel editor">
+        {!current ? <div className="editor-body"><h2>Ready to track?</h2><p>Select a game or start a new one.</p></div> : <>
+          <header className="panel-head"><div><h2>{current.opponent || (current.mode === 'live' ? 'New live game' : 'Post-game entry')}</h2><p>{current.rev ? (current.status === 'live' ? 'In progress' : 'Final') + ' · ' + (current.published ? 'Published' : 'Private') : 'Game details'}</p></div></header>
+          <div className="editor-body">
+            {game?.mode === 'live' && game.status === 'live' && <Live game={game} busy={busy} save={next => void save('save', next)} />}
+            {game?.mode === 'live' && game.status === 'final' && <div className="live-totals"><strong>{points(totals(game))} PTS</strong><span>{totals(game).reb} REB</span><span>{totals(game).ast} AST</span></div>}
+            {game?.mode === 'live' && <details className="play-log"><summary>Play log ({game.events.length})</summary>
+              <ol reversed>{[...game.events].reverse().map(play => <li key={play.id}>{play.period <= 4 ? 'Q' + play.period : 'OT' + (play.period - 4)} · {statLabels[play.stat]} · {new Date(play.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</li>)}</ol>
+            </details>}
+            {game?.mode === 'live' ? <details className="edit-details"><summary>Edit game details and score</summary><BoxForm key={current.id + current.rev} initial={current} busy={busy} onSave={next => void save('save', next)} /></details>
+              : <BoxForm key={current.id + current.rev} initial={current} busy={busy} onSave={next => void save('save', next)} />}
+            {game?.status === 'final' && <div className="publish-box"><h3>Public stats</h3>
+              <p>Publish the final score and points, rebounds, assists, steals and blocks. Changes to a published game go live when you republish.</p>
+              <div className="action-row"><button className="primary" disabled={busy} onClick={() => void save('publish', game)}>{game.published ? 'Republish stats' : 'Approve & publish'}</button>
+              {game.published && <button disabled={busy} onClick={() => void save('unpublish', game)}>Unpublish</button>}</div>
+            </div>}
+          </div>
+        </>}
+      </section>
+    </div>
+  </>
+}
