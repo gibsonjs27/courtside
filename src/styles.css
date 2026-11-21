@@ -8,6 +8,7 @@
   --line: #ded9db;
   --paper: #fff;
   --maroon: #651d32;
+  --mid-gray: #9ea2a2;
   --on-maroon: #fff;
   --dark: var(--maroon);
 }
@@ -112,7 +113,7 @@ main { padding-top: 28px; min-height: calc(100vh - 140px); }
 .chart-scale { position: absolute; inset: -8px auto -9px -25px; display: flex; flex-direction: column; justify-content: space-between; color: var(--muted); font-size: .72rem; }
 .bars { position: absolute; inset: 0; display: flex; justify-content: space-around; gap: 7px; z-index: 1; }
 .bar-column { display: flex; position: relative; align-items: flex-end; justify-content: center; flex: 1; }
-.bar { position: relative; width: min(75%, 44px); border-radius: 5px 5px 0 0; background: #c091a1; }
+.bar { position: relative; width: min(75%, 44px); border-radius: 5px 5px 0 0; background: var(--mid-gray); }
 .bar.latest { background: var(--maroon); border: 1px solid var(--maroon); border-bottom: none; }
 .bar span { position: absolute; bottom: calc(100% + 4px); width: 100%; text-align: center; font-size: .76rem; font-weight: 850; }
 .bar-column small { position: absolute; top: calc(100% + 6px); white-space: nowrap; color: var(--muted); font-size: .67rem; }
