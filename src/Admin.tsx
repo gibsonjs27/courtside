@@ -107,7 +107,7 @@ export default function Admin({ state, write, retry, discard, onSignOut, offline
     setBusy(true)
     try {
       if (await write(kind, next)) {
-        setSelected(next.id)
+        setSelected(kind === 'delete' ? undefined : next.id)
         setDraft(undefined)
       }
     } finally { setBusy(false) }
@@ -164,6 +164,13 @@ export default function Admin({ state, write, retry, discard, onSignOut, offline
                 <ol reversed>{[...game.events].reverse().map(play => <li key={play.id}>{play.period <= 4 ? 'Q' + play.period : 'OT' + (play.period - 4)} · {statLabels[play.stat]} · {new Date(play.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</li>)}</ol>
               </details>}
             </>}
+            {!draft && game && !game.published && <div className="edit-details">
+              <button className="delete-game" disabled={busy} onClick={() => {
+                if (confirm('Delete the unpublished game against ' + game.opponent + '? This cannot be undone after it syncs.')) {
+                  void save('delete', game)
+                }
+              }}>Delete game</button>
+            </div>}
           </div>
         </>}
       </section>

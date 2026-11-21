@@ -53,6 +53,12 @@ export function record(scope: string, kind: GameWrite, game: Game) {
     if ((kind === 'publish' || kind === 'save-and-publish') && game.status !== 'final') {
       throw new Error('Finalize the game before publishing.')
     }
+    if (kind === 'delete') {
+      if (!current || current.published) throw new Error('Only unpublished games can be deleted.')
+      state.games = state.games.filter(item => item.id !== game.id)
+      if (scope !== 'demo') state.queue.push({ id: crypto.randomUUID(), kind, game })
+      return
+    }
     const actions: Command['kind'][] = kind === 'save-and-publish' ? ['save', 'publish'] : [kind]
     let next = game
     for (const action of actions) {
@@ -92,9 +98,10 @@ export async function sync(scope: string) {
       const state = await local(scope)
       const command = state.queue[0]
       if (!command) break
-      const { error } = await client.rpc('apply_game_command', {
-        expected_owner: scope, command_id: command.id, action: command.kind, payload: command.game,
-      })
+      const identity = { expected_owner: scope, command_id: command.id }
+      const { error } = command.kind === 'delete'
+        ? await client.rpc('delete_unpublished_game', { ...identity, game_id: command.game.id, expected_revision: command.game.rev })
+        : await client.rpc('apply_game_command', { ...identity, action: command.kind, payload: command.game })
       if (error) throw new Error(error.message)
       await local(scope, latest => {
         latest.queue = latest.queue.filter(item => item.id !== command.id)

@@ -53,3 +53,9 @@ To try reloading offline, use `pnpm build` and `pnpm preview`. Open the preview 
 - The browser retains cached data and unsynced edits on the scoring device. Use a trusted browser profile. Clearing its site data removes unsynced edits. Previously cached public stats can remain visible offline until the visitor reconnects.
 - The profile overview uses the most recent published season, and **All charts** opens the career explorer. Seasons run August through July and are assigned from the game date. Set **Grade** and **Venue** when entering or editing a game. Older games without these fields appear as **Unspecified** until tagged. Save and publish a tagged game for its grade and venue to appear publicly. In Admin, **Detailed stats** includes private shooting splits, turnovers and fouls.
 - Run the [career splits migration](supabase/migrations/202611210002_career_splits.sql) after the initial migration when setting up a new project or upgrading an existing one.
+
+## Delete a private game
+
+In **Admin → My games**, open an unpublished game and choose **Delete game**. Confirm the game shown in the prompt. Deletions made offline sync when the admin workspace reconnects. Published games are protected by the database.
+
+Apply the [unpublished game deletion migration](supabase/migrations/202611210003_delete_unpublished.sql) after the career splits migration to enable this in Supabase.
