@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import StatsExplorer, { type Metric } from './StatsExplorer'
 import { gameDate, newest, seasonOf, type Profile, type PublicGame } from './model'
-import rhyderPortrait from './rhyder-no-24.jpg'
+import rhyderJumper from './rhyder-three-point-jumper.png'
 
 export function Court() {
   return <div className="court" aria-hidden="true"><div className="court-edge"><div className="court-arc"/><div className="court-key"/><div className="court-circle"/><div className="court-rim"/></div></div>
@@ -34,7 +34,7 @@ export default function PublicView({ profile, games }: { profile: Profile | null
         <h1>{player?.[0] ?? 'Basketball'}<br/><em>{player?.slice(1).join(' ') || (player ? '' : 'Tracker')}</em></h1>
         {profile && <p>{profile.team}<span className="hero-dot">·</span>{profile.position}</p>}
       </div>
-      {showPortrait && <img className="hero-portrait" src={rhyderPortrait} alt="Illustrated portrait of Rhyder in his maroon basketball jersey" width="720" height="720" />}
+      {showPortrait && <img className="hero-portrait" src={rhyderJumper} alt="Rhyder, wearing No. 24, rising for a three-point jump shot" width="415" height="900" />}
       {profile && <div className="jersey" aria-label={'Jersey number ' + profile.number}><span>NO.</span>{profile.number}</div>}
     </section>
     <section className="season-section" aria-labelledby="season-title">

@@ -228,13 +228,11 @@ summary { font-weight: 750; }
 .hero-with-portrait h1 { font-size: clamp(2.5rem, 6.5vw, 6rem); }
 .hero-portrait {
   display: block;
-  width: 100%;
-  height: auto;
-  max-width: 282px;
+  width: auto;
+  height: clamp(290px, 34vw, 374px);
+  max-width: 100%;
+  object-fit: contain;
   justify-self: center;
-  border: 1px solid #ffffff45;
-  border-radius: 14px;
-  box-shadow: 0 8px 26px #26081165;
 }
 .hero-with-portrait .jersey {
   position: static;
@@ -250,7 +248,7 @@ summary { font-weight: 750; }
   }
   .hero-with-portrait .hero-content { grid-column: 1 / -1; }
   .hero-with-portrait h1 { font-size: clamp(2.5rem, 10vw, 4rem); }
-  .hero-with-portrait .hero-portrait { max-width: 185px; justify-self: start; }
+  .hero-with-portrait .hero-portrait { height: clamp(205px, 62vw, 270px); }
   .hero-with-portrait .jersey { font-size: clamp(3.5rem, 17vw, 6.5rem); }
 }
 
