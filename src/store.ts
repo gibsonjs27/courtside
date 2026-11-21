@@ -69,10 +69,14 @@ export function record(scope: string, kind: GameWrite, game: Game) {
 
 export async function fetchPublic() {
   if (!supabase) return local('demo')
-  const [profile, games] = await Promise.all([
+  const fields = 'id,date,opponent,us,them,pts,reb,ast,stl,blk'
+  const [profile, result] = await Promise.all([
     supabase.from('public_profile').select('name,team,number,position,season').eq('id', 1).maybeSingle(),
-    supabase.from('approved_games').select('id,date,opponent,us,them,pts,reb,ast,stl,blk').order('date', { ascending: false }),
+    supabase.from('approved_games').select(`${fields},grade,venue`).order('date', { ascending: false }),
   ])
+  const games = result.error?.code === '42703'
+    ? await supabase.from('approved_games').select(fields).order('date', { ascending: false })
+    : result
   if (profile.error || games.error) throw new Error(profile.error?.message ?? games.error?.message)
   return local('public', state => {
     state.profile = profile.data

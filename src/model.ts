@@ -6,12 +6,15 @@ export const statLabels = {
 export type Stat = keyof typeof statLabels
 export type Counts = Record<Stat, number>
 export type Play = { id: string; stat: Stat; period: number; time: number }
-export type Game = {
+export const grades = ['9', '10', '11', '12'] as const
+export const venues = ['Home', 'Away', 'Neutral'] as const
+export type GameContext = { grade?: typeof grades[number] | ''; venue?: typeof venues[number] | '' }
+export type Game = GameContext & {
   id: string; rev: number; date: string; opponent: string; us: number; them: number;
   status: 'live' | 'final'; mode: 'live' | 'box'; period: number;
   counts: Counts; events: Play[]; notes: string; published: boolean;
 }
-export type PublicGame = Pick<Game, 'id' | 'date' | 'opponent' | 'us' | 'them'> & {
+export type PublicGame = GameContext & Pick<Game, 'id' | 'date' | 'opponent' | 'us' | 'them'> & {
   pts: number; reb: number; ast: number; stl: number; blk: number;
 }
 export type Profile = { name: string; team: string; number: string; position: string; season: string }
@@ -26,10 +29,14 @@ export function totals(game: Game): Counts {
   return counts
 }
 export const points = (counts: Counts) => 2 * counts.two + 3 * counts.three + counts.free
+export function seasonOf(date: string) {
+  const year = Number(date.slice(0, 4)) - (Number(date.slice(5, 7)) < 8 ? 1 : 0)
+  return year + '–' + String(year + 1).slice(-2)
+}
 export function summary(game: Game): PublicGame {
-  const { id, date, opponent, us, them } = game
+  const { id, date, opponent, us, them, grade, venue } = game
   const counts = totals(game)
-  return { id, date, opponent, us, them, pts: points(counts), reb: counts.reb, ast: counts.ast, stl: counts.stl, blk: counts.blk }
+  return { id, date, opponent, us, them, grade, venue, pts: points(counts), reb: counts.reb, ast: counts.ast, stl: counts.stl, blk: counts.blk }
 }
 export const demoProfile: Profile = { name: 'Jordan Miller', team: 'Westfield Wolves', number: '24', position: 'Guard', season: '2025–26 Season' }
 export const demoPublic: PublicGame[] = [
@@ -39,11 +46,11 @@ export const demoPublic: PublicGame[] = [
   ['2026-01-24', 'Cedar Ridge Eagles', 60, 42, 24, 9, 6, 4, 1],
   ['2026-01-17', 'Eastside Falcons', 49, 41, 13, 6, 4, 2, 0],
 ].map(([date, opponent, us, them, pts, reb, ast, stl, blk], index) =>
-  ({ id: 'demo-' + index, date: String(date), opponent: String(opponent), us: Number(us), them: Number(them), pts: Number(pts), reb: Number(reb), ast: Number(ast), stl: Number(stl), blk: Number(blk) }))
+  ({ id: 'demo-' + index, date: String(date), opponent: String(opponent), grade: '10', venue: index % 2 ? 'Away' : 'Home', us: Number(us), them: Number(them), pts: Number(pts), reb: Number(reb), ast: Number(ast), stl: Number(stl), blk: Number(blk) }))
 export function demoGames(): Game[] {
   return demoPublic.map(game => ({
     id: game.id, date: game.date, opponent: game.opponent, us: game.us, them: game.them,
-    rev: 1, mode: 'box', status: 'final', period: 4, events: [], notes: '', published: true,
+    grade: game.grade, venue: game.venue, rev: 1, mode: 'box', status: 'final', period: 4, events: [], notes: '', published: true,
     counts: { ...emptyCounts(), two: Math.floor(game.pts / 2), free: game.pts % 2, reb: game.reb, ast: game.ast, stl: game.stl, blk: game.blk },
   }))
 }

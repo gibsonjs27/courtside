@@ -147,6 +147,7 @@ function App() {
       <a className="brand" href="#profile" aria-label="Courtside home"><Ball/><span>COURTSIDE</span><small>PLAYER TRACKER</small></a>
       <nav aria-label="Main navigation">
         <a href="#profile" aria-current={!admin ? 'page' : undefined}>Player profile</a>
+        <a href="#stats-explorer">Stats</a>
         <a href="#admin" aria-current={admin ? 'page' : undefined}>Admin</a>
       </nav>
     </div></header>

@@ -1,5 +1,6 @@
+import StatsExplorer from './StatsExplorer'
 import { useRef, useState, type FormEvent } from 'react'
-import { gameDate, newest, newGame, points, stats, statLabels, totals, type GameWrite, type Game, type Stat } from './model'
+import { gameDate, grades, venues, newest, newGame, points, stats, summary, statLabels, totals, type GameWrite, type Game, type Stat } from './model'
 import type { LocalState } from './store'
 
 type Write = (kind: GameWrite, game: Game) => Promise<boolean>
@@ -38,7 +39,9 @@ function BoxForm({ initial, busy, onSave, onCancel }: {
       return
     }
     const publish = (event.nativeEvent as SubmitEvent).submitter?.getAttribute('value') === 'publish'
-    onSave({ ...initial, counts, opponent, date: String(data.get('date')),
+    const grade = grades.find(value => value === data.get('grade')) ?? ''
+    const venue = venues.find(value => value === data.get('venue')) ?? ''
+    onSave({ ...initial, counts, grade, venue, opponent, date: String(data.get('date')),
       us: Number(data.get('us')), them: Number(data.get('them')), notes: String(data.get('notes')) },
     publish ? 'save-and-publish' : 'save')
   }
@@ -46,6 +49,8 @@ function BoxForm({ initial, busy, onSave, onCancel }: {
     <div className="form-grid">
       <label>Opponent<input required name="opponent" maxLength={80} defaultValue={initial.opponent} onInput={event => event.currentTarget.setCustomValidity('')} /></label>
       <label>Game date<input required name="date" type="date" defaultValue={initial.date} /></label>
+      <label>Grade<select name="grade" defaultValue={initial.grade ?? ''}><option value="">Unspecified</option>{grades.map(grade => <option key={grade} value={grade}>Grade {grade}</option>)}</select></label>
+      <label>Venue<select name="venue" defaultValue={initial.venue ?? ''}><option value="">Unspecified</option>{venues.map(venue => <option key={venue}>{venue}</option>)}</select></label>
       <label>Team score<input required name="us" type="number" inputMode="numeric" min="0" max="999" defaultValue={initial.us} /></label>
       <label>Opponent score<input required name="them" type="number" inputMode="numeric" min="0" max="999" defaultValue={initial.them} /></label>
     </div>
@@ -81,7 +86,7 @@ function Live({ game, busy, save }: { game: Game; busy: boolean; save: (game: Ga
     </div>
     <div className="live-totals"><strong>{points(counts)} PTS</strong><span>{counts.reb} REB</span><span>{counts.ast} AST</span><span>{counts.stl} STL</span><span>{counts.blk} BLK</span></div>
     <h3>Log a play</h3>
-    <div className="event-buttons">{stats.map((stat, index) => <button className={index < 3 ? 'made' : ''} key={stat} disabled={busy} onClick={() => add(stat)}>{statLabels[stat]}<small>{counts[stat]}</small></button>)}</div>
+    <div className="event-buttons" aria-label="Live stat buttons">{stats.map((stat, index) => <button className={index < 3 ? 'made' : ''} key={stat} disabled={busy} onClick={() => add(stat)}><span>{statLabels[stat]}</span><small aria-label={counts[stat] + ' recorded'}>{counts[stat]}</small></button>)}</div>
     <div className="action-row"><button disabled={busy || !game.events.length} onClick={() => save({ ...game, events: game.events.slice(0, -1) })}>Undo last play</button><button className="primary" disabled={busy} onClick={() => save({ ...game, status: 'final' })}>Finalize game</button></div>
   </>
 }
@@ -89,6 +94,7 @@ function Live({ game, busy, save }: { game: Game; busy: boolean; save: (game: Ga
 export default function Admin({ state, write, retry, discard, onSignOut, offline }: {
   state: LocalState; write: Write; retry: () => void; discard: () => void; onSignOut?: () => void; offline: boolean
 }) {
+  const [view, setView] = useState<'games' | 'stats'>('games')
   const [selected, setSelected] = useState<string>()
   const [draft, setDraft] = useState<Game>()
   const [busy, setBusy] = useState(false)
@@ -123,11 +129,13 @@ export default function Admin({ state, write, retry, discard, onSignOut, offline
       {onSignOut && <button onClick={onSignOut}>Sign out</button>}
     </section>
     <div className="admin-actions">
-      <button className="primary" onClick={() => openDraft('live')} disabled={busy}>＋ New live game</button>
-      <button onClick={() => openDraft('box')} disabled={busy}>Post-game entry</button>
+      <button className="primary" onClick={() => { setView('games'); openDraft('live') }} disabled={busy}>＋ New live game</button>
+      <button onClick={() => { setView('games'); openDraft('box') }} disabled={busy}>Post-game entry</button>
+      <button aria-pressed={view === 'stats'} onClick={() => setView(view === 'stats' ? 'games' : 'stats')}>{view === 'stats' ? 'Back to games' : 'Detailed stats'}</button>
       <span role="status">{state.queue.length ? state.queue.length + ' pending sync' : offline ? 'Offline' : onSignOut ? 'Synced' : 'Saved on this device'}</span>
     </div>
     {!!state.queue.length && <details className="queue-tools"><summary>Pending changes</summary><p>Changes are saved on this device. They sync when this workspace is online.</p><div className="action-row"><button onClick={retry}>Retry sync</button><button onClick={exportQueue}>Export queue</button><button disabled={offline || busy} onClick={discard}>Discard pending changes</button></div></details>}
+    {view === 'stats' ? <StatsExplorer detailed games={state.games.filter(game => game.status === 'final').map(game => ({ ...summary(game), box: totals(game) }))} /> :
     <div className="admin-grid">
       <section className="panel archive"><header className="panel-head"><h2>My games</h2></header>
         {newest(state.games).map(item => <button key={item.id} className={'archive-item ' + (selected === item.id ? 'selected' : '')} onClick={() => { setSelected(item.id); setDraft(undefined); editor.current?.scrollIntoView({ block: 'nearest' }) }} disabled={busy}>
@@ -157,6 +165,6 @@ export default function Admin({ state, write, retry, discard, onSignOut, offline
           </div>
         </>}
       </section>
-    </div>
+    </div>}
   </>
 }

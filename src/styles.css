@@ -244,3 +244,35 @@ summary { font-weight: 750; }
   .hero-with-portrait .hero-portrait { max-width: 185px; justify-self: start; }
   .hero-with-portrait .jersey { font-size: clamp(3.5rem, 17vw, 6.5rem); }
 }
+
+.stat-link { text-align: left; }
+.stat-link:hover { border-color: var(--maroon); }
+#stats-explorer { margin-top: 20px; scroll-margin-top: 12px; }
+.stats-body { padding: 16px; }
+.stats-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.stats-filters label, .game-drilldown { display: grid; gap: 4px; font-size: .86rem; font-weight: 700; }
+.stats-overview { display: flex; flex-wrap: wrap; gap: 12px 24px; padding: 15px 0; border-bottom: 1px solid var(--line); }
+.stats-overview strong { color: var(--maroon); }
+.stats-chart { display: grid; gap: 7px; max-height: 355px; overflow: auto; padding: 12px 4px; }
+.stats-chart-row { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 2fr) minmax(3rem, auto); align-items: center; gap: 8px; font-size: .86rem; }
+.stats-chart-row button { padding: 5px 8px; text-align: left; }
+.stats-chart-row button[aria-pressed=true] { background: #f5e8ed; border-color: var(--maroon); }
+.stats-chart-row strong { text-align: right; }
+.stats-track { background: #f4f0f2; height: 13px; border-radius: 3px; }
+.stats-track div { height: 100%; background: var(--maroon); border-radius: inherit; }
+.game-drilldown { max-width: 420px; margin-top: 14px; }
+.stat-detail { margin-top: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; }
+.stat-detail p { color: var(--muted); font-size: .85rem; }
+.stat-detail dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(106px, 1fr)); gap: 7px; margin-bottom: 0; }
+.stat-detail dl div { background: #f4f0f2; padding: 8px; border-radius: 6px; }
+.stat-detail dt { font-size: .8rem; }
+.stat-detail dd { margin: 0; font-size: 1.2rem; font-weight: 800; }
+.event-buttons button { flex-direction: column; justify-content: center; align-items: center; text-align: center; min-height: 65px; }
+.event-buttons button.made { background: var(--maroon); border-color: var(--maroon); color: white; }
+.event-buttons button.made:hover { background: #82394f; }
+.event-buttons button.made small { color: white; }
+@media (max-width: 600px) {
+  .stats-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stats-chart-row { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) 3rem; }
+  .event-buttons button { min-height: 69px; font-size: .88rem; }
+}
