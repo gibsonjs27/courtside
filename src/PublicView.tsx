@@ -1,4 +1,5 @@
 import { gameDate, newest, type Profile, type PublicGame } from './model'
+import rhyderPortrait from './rhyder-no-24.jpg'
 
 export function Court() {
   return <div className="court" aria-hidden="true"><div className="court-edge"><div className="court-arc"/><div className="court-key"/><div className="court-circle"/><div className="court-rim"/></div></div>
@@ -11,15 +12,17 @@ export default function PublicView({ profile, games }: { profile: Profile | null
   const losses = sorted.filter(game => game.us < game.them).length
   const ties = sorted.length - wins - losses
   const peak = Math.max(25, ...recent.map(game => game.pts))
-  const player = profile?.name.split(' ')
+  const player = profile?.name.trim().split(/\s+/)
+  const showPortrait = player?.[0].toLowerCase() === 'rhyder' && profile?.number.trim() === '24'
   return <>
-    <section className="hero">
+    <section className={showPortrait ? 'hero hero-with-portrait' : 'hero'}>
       <Court />
       <div className="hero-content">
         <span className="season"><span/> {profile?.season ?? 'Player profile'}</span>
         <h1>{player?.[0] ?? 'Basketball'}<br/><em>{player?.slice(1).join(' ') || (player ? '' : 'Tracker')}</em></h1>
         {profile && <p>{profile.team}<span className="hero-dot">·</span>{profile.position}</p>}
       </div>
+      {showPortrait && <img className="hero-portrait" src={rhyderPortrait} alt="Illustrated portrait of Rhyder in his maroon basketball jersey" width="720" height="720" />}
       {profile && <div className="jersey" aria-label={'Jersey number ' + profile.number}><span>NO.</span>{profile.number}</div>}
     </section>
     <section className="season-section" aria-labelledby="season-title">

@@ -208,3 +208,39 @@ summary { font-weight: 750; }
 .score-controls button { min-height: 35px; min-width: 35px; padding: 2px; border-color: #ad7788; background: #4b1426; color: #fff; }
 .score-controls button:hover { background: #82394f; }
 .score-controls button:focus-visible { outline-color: var(--on-maroon); }
+
+.hero-with-portrait {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(130px, 27%) minmax(0, .55fr);
+  gap: clamp(12px, 2.5vw, 36px);
+  padding: 22px clamp(20px, 3.75vw, 44px);
+}
+.hero-with-portrait .hero-content { max-width: none; padding: 0; }
+.hero-with-portrait h1 { font-size: clamp(2.5rem, 6.5vw, 6rem); }
+.hero-portrait {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 282px;
+  justify-self: center;
+  border: 1px solid #ffffff45;
+  border-radius: 14px;
+  box-shadow: 0 8px 26px #26081165;
+}
+.hero-with-portrait .jersey {
+  position: static;
+  justify-self: center;
+  transform: rotate(-9deg);
+  font-size: clamp(3.5rem, 13vw, 11.5rem);
+}
+@media (max-width: 600px) {
+  .hero-with-portrait {
+    grid-template-columns: minmax(0, 1fr) minmax(0, .52fr);
+    gap: 15px;
+    padding: 19px 16px;
+  }
+  .hero-with-portrait .hero-content { grid-column: 1 / -1; }
+  .hero-with-portrait h1 { font-size: clamp(2.5rem, 10vw, 4rem); }
+  .hero-with-portrait .hero-portrait { max-width: 185px; justify-self: start; }
+  .hero-with-portrait .jersey { font-size: clamp(3.5rem, 17vw, 6.5rem); }
+}
