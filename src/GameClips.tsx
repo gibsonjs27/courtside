@@ -19,20 +19,32 @@ function Player({ title, url }: { title: string; url: string }) {
 
 export function PublicHighlights() {
   const [clips, setClips] = useState<Highlight[]>([])
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   useEffect(() => {
     if (!supabase || !oneDriveConfigured) return
     let active = true
     void supabase.from('published_highlights').select('id,title,embed_url,opponent,date').order('created_at', { ascending: false })
-      .then(({ data }) => { if (active && data) setClips(data.filter(clip => allowedEmbed(clip.embed_url))) })
+      .then(({ data, error }) => {
+        if (!active) return
+        if (error) {
+          setStatus('error')
+          return
+        }
+        const playable = (data ?? []).filter(clip => allowedEmbed(clip.embed_url))
+        setClips(playable)
+        setStatus(playable.length || !data?.length ? 'ready' : 'error')
+      })
     return () => { active = false }
   }, [])
-  if (!clips.length) return null
-  return <section className="panel highlights" aria-labelledby="highlights-title">
+  if (!supabase || !oneDriveConfigured) return null
+  return <section id="highlights" className="panel highlights" aria-labelledby="highlights-title">
     <header className="panel-head"><h2 id="highlights-title">Highlights</h2></header>
-    <div className="highlight-grid">{clips.map(clip => <article key={clip.id}>
+    {clips.length ? <div className="highlight-grid">{clips.map(clip => <article key={clip.id}>
       <h3>{clip.title}</h3>{clip.opponent && <p>{clip.opponent}{clip.date ? ' · ' + clip.date : ''}</p>}
       <Player key={clip.embed_url} title={clip.title} url={clip.embed_url} />
-    </article>)}</div>
+    </article>)}</div> : <p className="empty" role="status">{status === 'loading' ? 'Loading highlights…'
+      : status === 'error' ? 'Highlights couldn’t load. Try refreshing the page.'
+      : 'No clips have been published yet.'}</p>}
   </section>
 }
 

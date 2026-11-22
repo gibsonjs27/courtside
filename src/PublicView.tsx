@@ -12,7 +12,9 @@ export function Court() {
 export default function PublicView({ profile, games }: { profile: Profile | null; games: PublicGame[] }) {
   const [chart, setChart] = useState<Metric>()
   useEffect(() => {
-    if (location.hash === '#stats-explorer') document.getElementById('stats-explorer')?.scrollIntoView()
+    if (location.hash === '#stats-explorer' || location.hash === '#highlights') {
+      document.getElementById(location.hash.slice(1))?.scrollIntoView()
+    }
   }, [])
   const openChart = (metric: Metric) => {
     setChart(metric)
