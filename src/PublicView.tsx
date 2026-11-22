@@ -1,4 +1,3 @@
-import { PublicHighlights } from './GameClips'
 import GameLog from './GameLog'
 import { useEffect, useState } from 'react'
 import StatsExplorer, { type Metric } from './StatsExplorer'
@@ -13,7 +12,7 @@ export default function PublicView({ profile, games }: { profile: Profile | null
   const [chart, setChart] = useState<Metric>()
   useEffect(() => {
     if (location.hash === '#stats-explorer' || location.hash === '#highlights') {
-      document.getElementById(location.hash.slice(1))?.scrollIntoView()
+      document.getElementById(location.hash === '#highlights' ? 'game-log' : 'stats-explorer')?.scrollIntoView()
     }
   }, [])
   const openChart = (metric: Metric) => {
@@ -70,7 +69,6 @@ export default function PublicView({ profile, games }: { profile: Profile | null
         </> : <p className="empty">A scoring trend will appear after the first published game.</p>}
       </section>
     </div>
-    <PublicHighlights />
     <div id="stats-explorer"><StatsExplorer games={games} selectedMetric={chart} onMetricChange={setChart}/></div>
   </>
 }

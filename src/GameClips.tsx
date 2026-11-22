@@ -3,7 +3,7 @@ import { supabase } from './store'
 import { allowedVideoLink, connectOneDrive, finishOneDriveConnection, oneDriveConfigured, oneDriveConnected,
   revokeOneDriveClip, shareOneDriveClip, trashOneDriveClip, uploadOneDriveClip } from './oneDrive'
 
-type Highlight = { id: string; title: string; embed_url: string; inline_player?: boolean; opponent?: string; date?: string }
+export type Highlight = { id: string; game_id: string; title: string; embed_url: string; inline_player: boolean }
 type Clip = { id: string; title: string; item_id: string; embed_url: string | null; permission_id: string | null }
 const message = (error: unknown) => error instanceof Error ? error.message : String(error)
 const check = ({ error }: { error: { message: string } | null }) => { if (error) throw new Error(error.message) }
@@ -19,35 +19,28 @@ function Player({ title, url, inline }: { title: string; url: string; inline: bo
     : <button type="button" className="highlight-play" onClick={() => setPlaying(true)}>Play {title}</button>
 }
 
-export function PublicHighlights() {
+export function usePublicHighlights() {
   const [clips, setClips] = useState<Highlight[]>([])
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [failed, setFailed] = useState(false)
   useEffect(() => {
     if (!supabase || !oneDriveConfigured) return
     let active = true
-    void supabase.from('published_highlights').select('id,title,embed_url,opponent,date,inline_player').order('created_at', { ascending: false })
+    void supabase.from('published_highlights').select('id,game_id,title,embed_url,inline_player').order('created_at', { ascending: false })
       .then(({ data, error }) => {
         if (!active) return
-        if (error) {
-          setStatus('error')
-          return
-        }
-        const playable = (data ?? []).filter(clip => allowedVideoLink(clip.embed_url))
-        setClips(playable)
-        setStatus(playable.length || !data?.length ? 'ready' : 'error')
+        if (error) setFailed(true)
+        else setClips((data ?? []).filter(clip => allowedVideoLink(clip.embed_url)))
       })
     return () => { active = false }
   }, [])
-  if (!supabase || !oneDriveConfigured) return null
-  return <section id="highlights" className="panel highlights" aria-labelledby="highlights-title">
-    <header className="panel-head"><h2 id="highlights-title">Highlights</h2></header>
-    {clips.length ? <div className="highlight-grid">{clips.map(clip => <article key={clip.id}>
-      <h3>{clip.title}</h3>{clip.opponent && <p>{clip.opponent}{clip.date ? ' · ' + clip.date : ''}</p>}
-      <Player key={clip.embed_url} title={clip.title} url={clip.embed_url} inline={clip.inline_player !== false} />
-    </article>)}</div> : <p className="empty" role="status">{status === 'loading' ? 'Loading highlights…'
-      : status === 'error' ? 'Highlights couldn’t load. Try refreshing the page.'
-      : 'No clips have been published yet.'}</p>}
-  </section>
+  return { clips, failed }
+}
+
+export function GameHighlights({ clips }: { clips: Highlight[] }) {
+  return <div className="highlight-grid">{clips.map(clip => <article key={clip.id}>
+    <h3>{clip.title}</h3>
+    <Player key={clip.embed_url} title={clip.title} url={clip.embed_url} inline={clip.inline_player !== false} />
+  </article>)}</div>
 }
 
 export default function GameClips({ gameId, pending, onClipsLoaded }: { gameId: string; pending: boolean; onClipsLoaded: (gameId: string, count: number) => void }) {

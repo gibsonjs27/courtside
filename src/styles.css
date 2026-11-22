@@ -330,7 +330,6 @@ summary { font-weight: 750; }
 .timeline-table { white-space: nowrap; }
 @media (min-width: 1000px) { .public-grid { grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr); } }
 
-.highlights { margin-top: 18px; }
 .highlight-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; padding: 16px; }
 .highlight-grid p { color: var(--muted); margin: 4px 0; }
 .highlight-play, .highlight-player { display: block; width: 100%; margin-top: 8px; }
@@ -339,3 +338,22 @@ summary { font-weight: 750; }
 .clip-list li { padding: 12px 0; border-top: 1px solid var(--line); }
 .clip-list li > span { margin-inline-start: 10px; color: var(--muted); }
 .clip-list .action-row { margin-top: 8px; }
+
+.game-log .table-scroll { container-type: inline-size; }
+.game-highlights-toggle {
+  display: block;
+  min-height: 34px;
+  margin-top: 4px;
+  padding: 3px 8px;
+  color: var(--accent);
+  font-size: .76rem;
+}
+.game-highlights-row td:first-child { padding: 0; }
+.game-highlights-panel {
+  position: sticky;
+  left: 0;
+  width: min(100%, 100cqi);
+  background: var(--surface);
+  text-align: left;
+  white-space: normal;
+}
