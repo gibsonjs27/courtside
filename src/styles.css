@@ -332,8 +332,12 @@ summary { font-weight: 750; }
 
 .highlight-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; padding: 16px; }
 .highlight-grid p { color: var(--muted); margin: 4px 0; }
-.highlight-play, .highlight-player { display: block; width: 100%; margin-top: 8px; }
-.highlight-player { border: 0; aspect-ratio: 16/9; }
+.highlight-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; }
+.highlight-external { display: inline-flex; align-items: center; min-height: 44px; color: var(--accent); font-weight: 750; }
+.highlight-player { display: block; width: 100%; margin-top: 8px; border: 0; aspect-ratio: 16/9; }
+@media (max-width: 600px), (hover: none) and (pointer: coarse) {
+  .highlight-play, .highlight-player { display: none; }
+}
 .clip-list { padding: 0; list-style: none; }
 .clip-list li { padding: 12px 0; border-top: 1px solid var(--line); }
 .clip-list li > span { margin-inline-start: 10px; color: var(--muted); }

@@ -12,11 +12,18 @@ function Player({ title, url, inline }: { title: string; url: string; inline: bo
   const [playing, setPlaying] = useState(false)
   const embed = allowedVideoLink(url)
   if (!embed) return null
-  const external = <a href={embed} target="_blank" rel="noreferrer">{inline ? 'Open in OneDrive' : 'Watch ' + title + ' in OneDrive'}</a>
+  const external = <a className="highlight-external" href={embed} target="_blank" rel="noreferrer"
+    aria-label={'Watch ' + title + ' in OneDrive'}>Play in OneDrive ↗</a>
   if (!inline) return external
-  return playing
-    ? <><iframe className="highlight-player" src={embed} title={title} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="no-referrer" />{external}</>
-    : <button type="button" className="highlight-play" onClick={() => setPlaying(true)}>Play {title}</button>
+  return <>
+    <div className="highlight-actions">
+      <button type="button" className="highlight-play" aria-expanded={playing} onClick={() => setPlaying(!playing)}>
+        {playing ? 'Close player' : 'Play here'}
+      </button>
+      {external}
+    </div>
+    {playing && <iframe className="highlight-player" src={embed} title={title} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="no-referrer" />}
+  </>
 }
 
 export function usePublicHighlights() {
