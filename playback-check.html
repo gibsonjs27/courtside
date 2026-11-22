@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Courtside playback check</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font: 1rem/1.55 system-ui, sans-serif; max-width: 42rem; margin: 1.5rem auto; padding: 0 1rem; }
+    button, select, a.action { display: inline-block; font: inherit; min-height: 44px; box-sizing: border-box; padding: .5rem .75rem; }
+    iframe { display: block; width: 100%; aspect-ratio: 16 / 9; border: 1px solid GrayText; margin: 1rem 0; }
+    [hidden] { display: none; }
+    h1 { line-height: 1.15; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Courtside playback check</h1>
+    <p>Run both tests with the same published clip. Use Safari Private Browsing so the result reflects what a signed-out visitor sees.</p>
+    <p id="status" role="status">Loading published clips…</p>
+    <div id="tests" hidden>
+      <label for="clip">Clip</label>
+      <select id="clip"></select>
+      <h2>1. Inside Courtside</h2>
+      <p>Load the embedded player, tap its Play button if it appears, and give it about 15 seconds.</p>
+      <button type="button" id="inside">Load embedded player</button>
+      <div id="frame"></div>
+      <h2>2. In a separate Safari tab</h2>
+      <p>Open the exact same link in its own tab. Tap Play if needed and give it the same amount of time.</p>
+      <a class="action" id="outside" target="_blank" rel="noreferrer">Open video in its own tab</a>
+      <p>For each test, note whether it played, kept spinning, asked you to sign in, or showed an error. The check page does not record your results.</p>
+    </div>
+    <p><a href="./#game-log">Back to the Game Log</a></p>
+  </main>
+  <script type="module" src="/src/playbackCheck.ts"></script>
+</body>
+</html>
