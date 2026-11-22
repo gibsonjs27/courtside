@@ -1,0 +1,144 @@
+import { useEffect, useState, type FormEvent } from 'react'
+import { supabase } from './store'
+import { allowedEmbed, connectOneDrive, finishOneDriveConnection, oneDriveConfigured, oneDriveConnected,
+  revokeOneDriveClip, shareOneDriveClip, trashOneDriveClip, uploadOneDriveClip } from './oneDrive'
+
+type Highlight = { id: string; title: string; embed_url: string; opponent?: string; date?: string }
+type Clip = { id: string; title: string; item_id: string; embed_url: string | null; permission_id: string | null }
+const message = (error: unknown) => error instanceof Error ? error.message : String(error)
+const check = ({ error }: { error: { message: string } | null }) => { if (error) throw new Error(error.message) }
+
+function Player({ title, url }: { title: string; url: string }) {
+  const [playing, setPlaying] = useState(false)
+  const embed = allowedEmbed(url)
+  if (!embed) return null
+  return playing
+    ? <iframe className="highlight-player" src={embed} title={title} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="no-referrer" />
+    : <button type="button" className="highlight-play" onClick={() => setPlaying(true)}>Play {title}</button>
+}
+
+export function PublicHighlights() {
+  const [clips, setClips] = useState<Highlight[]>([])
+  useEffect(() => {
+    if (!supabase || !oneDriveConfigured) return
+    let active = true
+    void supabase.from('published_highlights').select('id,title,embed_url,opponent,date').order('created_at', { ascending: false })
+      .then(({ data }) => { if (active && data) setClips(data.filter(clip => allowedEmbed(clip.embed_url))) })
+    return () => { active = false }
+  }, [])
+  if (!clips.length) return null
+  return <section className="panel highlights" aria-labelledby="highlights-title">
+    <header className="panel-head"><h2 id="highlights-title">Highlights</h2></header>
+    <div className="highlight-grid">{clips.map(clip => <article key={clip.id}>
+      <h3>{clip.title}</h3>{clip.opponent && <p>{clip.opponent}{clip.date ? ' · ' + clip.date : ''}</p>}
+      <Player key={clip.embed_url} title={clip.title} url={clip.embed_url} />
+    </article>)}</div>
+  </section>
+}
+
+export default function GameClips({ gameId, pending, onClipsLoaded }: { gameId: string; pending: boolean; onClipsLoaded: (gameId: string, count: number) => void }) {
+  const [clips, setClips] = useState<Clip[]>([])
+  const [loaded, setLoaded] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [notice, setNotice] = useState('')
+  const [connected, setConnected] = useState(oneDriveConnected)
+  const [unsavedClip, setUnsavedClip] = useState<{ itemId: string; title: string; ownerId: string }>()
+  const client = supabase
+  const load = async () => {
+    if (!client) return
+    const result = await client.from('game_clips').select('id,title,item_id,embed_url,permission_id').eq('game_id', gameId).order('created_at', { ascending: false })
+    check(result)
+    setClips(result.data ?? [])
+    onClipsLoaded(gameId, result.data?.length ?? 0)
+    setLoaded(true)
+  }
+  useEffect(() => {
+    if (!oneDriveConfigured || !client) return
+    let active = true
+    void finishOneDriveConnection().then(() => {
+      if (active) setConnected(oneDriveConnected())
+    }).catch(error => { if (active) setNotice(message(error)) })
+    void load().catch(error => { if (active) setNotice(message(error)) })
+    return () => { active = false }
+  }, [gameId])
+
+  const run = async (action: () => Promise<unknown>) => {
+    setBusy(true)
+    setNotice('')
+    try { await action() }
+    catch (error) { setNotice(message(error)) }
+    finally { setConnected(oneDriveConnected()); setBusy(false) }
+  }
+
+  if (!client || !oneDriveConfigured) return null
+
+  const saveClip = async (clip: { itemId: string; title: string; ownerId: string }) => {
+    check(await client.from('game_clips').upsert({
+      game_id: gameId, owner_id: clip.ownerId, title: clip.title, item_id: clip.itemId,
+    }, { onConflict: 'owner_id,item_id', ignoreDuplicates: true }))
+    setUnsavedClip(undefined)
+    await load()
+  }
+
+  const upload = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const form = event.currentTarget
+    const data = new FormData(form)
+    const file = data.get('video')
+    const title = String(data.get('title')).trim()
+    if (!(file instanceof File) || !file.size || !title) {
+      setNotice('Enter a title and choose a video.')
+      return
+    }
+    void run(async () => {
+      const user = await client.auth.getUser()
+      check(user)
+      if (!user.data.user) throw new Error('Sign in to Courtside to upload a clip.')
+      const item = await uploadOneDriveClip(file)
+      const clip = { itemId: item.id, title, ownerId: user.data.user.id }
+      setUnsavedClip(clip)
+      form.reset()
+      await saveClip(clip)
+    })
+  }
+
+  return <section className="edit-details clips-admin" aria-label="Video clips">
+    <h3>Video clips</h3>
+    <p>Upload to OneDrive, then publish individual clips to Highlights.</p>
+    {!connected && <button type="button" disabled={busy} onClick={() => void run(() => connectOneDrive(gameId))}>Connect OneDrive</button>}
+    {connected && loaded && !pending && !unsavedClip && <form className="game-form" onSubmit={upload}>
+      <label>Clip title<input name="title" required maxLength={100} /></label>
+      <label>Video<input name="video" type="file" accept="video/mp4,video/quicktime,video/x-m4v,.mp4,.mov,.m4v" required /></label>
+      <button className="primary" disabled={busy}>{busy ? 'Working…' : 'Upload clip'}</button>
+    </form>}
+    {pending && <p>Wait for the game to sync before uploading.</p>}
+    {unsavedClip && <button type="button" disabled={busy} onClick={() => void run(() => saveClip(unsavedClip))}>Retry attaching uploaded clip</button>}
+    {notice && <p role="alert">{notice}</p>}
+    <ul className="clip-list">{clips.map(clip => <li key={clip.id}>
+      <strong>{clip.title}</strong><span>{clip.embed_url ? 'Public' : 'Private'}</span>
+      <div className="action-row">
+        <button type="button" disabled={busy || !connected} onClick={() => {
+          if (!clip.embed_url && !confirm('Publish this clip for anyone to watch?')) return
+          void run(async () => {
+            if (clip.permission_id) {
+              await revokeOneDriveClip(clip.item_id, clip.permission_id)
+              check(await client.from('game_clips').update({ embed_url: null, permission_id: null }).eq('id', clip.id))
+            } else {
+              const link = await shareOneDriveClip(clip.item_id)
+              check(await client.from('game_clips').update({ embed_url: link.url, permission_id: link.permissionId }).eq('id', clip.id))
+            }
+            await load()
+          })
+        }}>{clip.embed_url ? 'Unpublish clip' : 'Publish clip'}</button>
+        <button type="button" disabled={busy || !connected} onClick={() => {
+          if (!confirm('Remove this clip from Courtside and move its OneDrive file to the recycle bin?')) return
+          void run(async () => {
+            await trashOneDriveClip(clip.item_id)
+            check(await client.from('game_clips').delete().eq('id', clip.id))
+            await load()
+          })
+        }}>Delete clip</button>
+      </div>
+    </li>)}</ul>
+  </section>
+}

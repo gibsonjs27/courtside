@@ -329,3 +329,13 @@ summary { font-weight: 750; }
 .timeline-grid { stroke: var(--line); }
 .timeline-table { white-space: nowrap; }
 @media (min-width: 1000px) { .public-grid { grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr); } }
+
+.highlights { margin-top: 18px; }
+.highlight-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; padding: 16px; }
+.highlight-grid p { color: var(--muted); margin: 4px 0; }
+.highlight-play, .highlight-player { display: block; width: 100%; margin-top: 8px; }
+.highlight-player { border: 0; aspect-ratio: 16/9; }
+.clip-list { padding: 0; list-style: none; }
+.clip-list li { padding: 12px 0; border-top: 1px solid var(--line); }
+.clip-list li > span { margin-inline-start: 10px; color: var(--muted); }
+.clip-list .action-row { margin-top: 8px; }

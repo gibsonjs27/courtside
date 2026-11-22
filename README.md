@@ -59,3 +59,25 @@ To try reloading offline, use `pnpm build` and `pnpm preview`. Open the preview 
 In **Admin → My games**, open an unpublished game and choose **Delete game**. Confirm the game shown in the prompt. Deletions made offline sync when the admin workspace reconnects. Published games are protected by the database.
 
 Apply the [unpublished game deletion migration](supabase/migrations/202611210003_delete_unpublished.sql) after the career splits migration to enable this in Supabase.
+
+## Connect personal OneDrive for highlights
+
+Register a personal Microsoft accounts application in Microsoft Entra. Add the
+deployed Courtside URL (including its trailing slash) as a **Single-page
+application** redirect URI. Add the delegated Microsoft Graph permission
+`Files.ReadWrite`; Microsoft's upload and sharing APIs document this scope
+for personal accounts. Courtside writes clips to its OneDrive application
+folder. Microsoft consent grants broader delegated file access than that
+folder. This browser client uses PKCE and needs no client secret.
+
+In GitHub Actions repository variables, set `VITE_ONEDRIVE_CLIENT_ID` to the
+Application (client) ID. Apply
+[migration 202611220001](supabase/migrations/202611220001_game_clips.sql)
+in Supabase before deploying with the variable set.
+
+In **Admin → My games**, open a synced game and select **Connect OneDrive**.
+Upload a named MP4, MOV, or M4V clip up to 250 MB while online. A new clip stays
+private until you choose **Publish clip**. Visitors can then play it under
+**Highlights** on the profile. Unpublishing revokes the app-created sharing
+link. For the first live test, check playback in Safari while signed out of
+Microsoft. Video encoding support can vary with the original recording format.

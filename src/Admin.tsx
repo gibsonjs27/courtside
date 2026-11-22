@@ -1,3 +1,5 @@
+import GameClips from './GameClips'
+import { oneDriveConfigured, oneDriveReturnGame } from './oneDrive'
 import StatsExplorer from './StatsExplorer'
 import { useRef, useState, type FormEvent } from 'react'
 import { gameDate, grades, venues, newest, newGame, points, stats, summary, statLabels, totals, type GameWrite, type Game, type Stat } from './model'
@@ -97,9 +99,10 @@ export default function Admin({ state, write, retry, discard, onSignOut, offline
   state: LocalState; write: Write; retry: () => void; discard: () => void; onSignOut?: () => void; offline: boolean
 }) {
   const [view, setView] = useState<'games' | 'stats'>('games')
-  const [selected, setSelected] = useState<string>()
+  const [selected, setSelected] = useState<string | undefined>(oneDriveReturnGame)
   const [draft, setDraft] = useState<Game>()
   const [busy, setBusy] = useState(false)
+  const [clipCounts, setClipCounts] = useState<Record<string, number>>({})
   const editor = useRef<HTMLElement>(null)
   const game = state.games.find(item => item.id === selected)
   const current = draft ?? game
@@ -171,8 +174,10 @@ export default function Admin({ state, write, retry, discard, onSignOut, offline
                 <ol reversed>{[...game.events].reverse().map(play => <li key={play.id}>{play.period <= 4 ? 'Q' + play.period : 'OT' + (play.period - 4)} · {statLabels[play.stat]} · {new Date(play.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</li>)}</ol>
               </details>}
             </>}
+            {!draft && game && <GameClips key={game.id} gameId={game.id} pending={state.queue.some(command => command.game.id === game.id)} onClipsLoaded={(id, count) => setClipCounts(previous => ({ ...previous, [id]: count }))} />}
             {!draft && game && !game.published && <div className="edit-details">
-              <button className="delete-game" disabled={busy} onClick={() => {
+              {Boolean(clipCounts[game.id]) && <p>Remove this game’s video clips before deleting it.</p>}
+              <button className="delete-game" disabled={busy || (Boolean(onSignOut && oneDriveConfigured) && clipCounts[game.id] !== 0)} onClick={() => {
                 if (confirm('Delete the unpublished game against ' + game.opponent + '? This cannot be undone after it syncs.')) {
                   void save('delete', game)
                 }

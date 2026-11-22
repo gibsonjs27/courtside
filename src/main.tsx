@@ -1,3 +1,4 @@
+import { disconnectOneDrive } from './oneDrive'
 import { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import type { Session } from '@supabase/supabase-js'
@@ -61,7 +62,7 @@ function App() {
     const auth = supabase?.auth.onAuthStateChange((event, value) => {
       setSession(value)
       setAuthReady(true)
-      if (event === 'SIGNED_OUT') { setVerified(undefined); setPrivateState(undefined) }
+      if (event === 'SIGNED_OUT') { disconnectOneDrive(); setVerified(undefined); setPrivateState(undefined) }
     })
     return () => {
       removeEventListener('hashchange', navigate)

@@ -1,3 +1,4 @@
+import { PublicHighlights } from './GameClips'
 import GameLog from './GameLog'
 import { useEffect, useState } from 'react'
 import StatsExplorer, { type Metric } from './StatsExplorer'
@@ -67,6 +68,7 @@ export default function PublicView({ profile, games }: { profile: Profile | null
         </> : <p className="empty">A scoring trend will appear after the first published game.</p>}
       </section>
     </div>
+    <PublicHighlights />
     <div id="stats-explorer"><StatsExplorer games={games} selectedMetric={chart} onMetricChange={setChart}/></div>
   </>
 }
