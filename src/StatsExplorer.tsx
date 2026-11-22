@@ -98,7 +98,7 @@ export default function StatsExplorer({ games, detailed = false, initialMetric }
         <label>From<input type="date" value={from} onChange={e => setFrom(e.target.value)} /></label>
         <label>Through<input type="date" value={through} onChange={e => setThrough(e.target.value)} /></label>
       </div>
-      {!detailed && filtered.some(game => !game.box) && <p className="stats-coverage">Some games have summary stats only. Missing box-score values show as —.</p>}
+      {!detailed && filtered.some(game => !game.box) && <p className="stats-coverage">Some games were published with summary stats only. Shooting percentages require a published box score with shot attempts.</p>}
       {invalidDates && <p role="alert" className="empty">The end date must be on or after the start date.</p>}
       <div className="action-row chart-views">
         <button type="button" aria-pressed={view === 'timeline'} onClick={() => setView('timeline')}>Over time</button>
@@ -132,7 +132,10 @@ export default function StatsExplorer({ games, detailed = false, initialMetric }
           <dl>{metrics.map(([key, label]) => {
             const percentage = shooting.some(([item]) => item === key)
             const result = percentage ? rate([game], key) : null
-            return <div key={key}><dt>{label}</dt><dd>{!available(game, key) ? '—' : result ? result.made + '/' + result.attempts : sums([game], key)}</dd></div>
+            let shown: string | number = '—'
+            if (result?.attempts) shown = display(100 * result.made / result.attempts, true) + ' (' + result.made + '/' + result.attempts + ')'
+            if (!result && available(game, key)) shown = sums([game], key)
+            return <div key={key}><dt>{label}</dt><dd>{shown}</dd></div>
           })}</dl>
         </section>}
       </> : <p className="empty">No games match these filters.</p>}

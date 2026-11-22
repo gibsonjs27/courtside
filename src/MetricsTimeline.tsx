@@ -17,6 +17,9 @@ export default function MetricsTimeline({ games, series }: { games: PublicGame[]
     {[false, true].map(percent => {
       const plots = series.map((item, index) => ({ ...item, index })).filter(item => item.percent === percent)
       if (!plots.length) return null
+      if (percent && plots.every(item => item.values.every(value => value === null))) {
+        return <div key="shooting"><h3>Shooting percentage</h3><p className="stats-coverage">No shot attempts are available for the selected shooting metrics and games.</p></div>
+      }
       const max = percent ? 100 : Math.max(4, Math.ceil(Math.max(0, ...plots.flatMap(item => item.values.map(value => value ?? 0))) / 4) * 4)
       const y = (v: number) => 166 - 148 * v / max
       return <div key={String(percent)}>
