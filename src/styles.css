@@ -252,9 +252,9 @@ summary { font-weight: 750; }
   .hero-with-portrait .jersey { font-size: clamp(3.5rem, 17vw, 6.5rem); }
 }
 
-.stat-link { text-align: left; }
+.stat-link { text-align: left; text-decoration: none; }
 .stat-link:hover { border-color: var(--accent); }
-#stats-explorer { margin-top: 20px; scroll-margin-top: 12px; }
+
 .stats-body { padding: 16px; }
 .stats-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .stats-filters label, .game-drilldown { display: grid; gap: 4px; font-size: .86rem; font-weight: 700; }
@@ -358,3 +358,17 @@ summary { font-weight: 750; }
   text-align: left;
   white-space: normal;
 }
+
+.all-stats-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  padding: .5rem .85rem;
+  border: 1px solid var(--field-line);
+  border-radius: 9px;
+  text-decoration: none;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.all-stats-link:hover { background: var(--tint); border-color: var(--accent); }
+.stats-page h1 { margin: 12px 0 16px; font-size: clamp(1.9rem, 5vw, 3rem); }

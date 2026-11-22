@@ -23,8 +23,8 @@ function display(value: number | null, percentage: boolean) {
   return (Number.isInteger(value) ? String(value) : value.toFixed(1)) + (percentage ? '%' : '')
 }
 
-export default function StatsExplorer({ games, detailed = false, selectedMetric, onMetricChange }: {
-  games: StatGame[]; detailed?: boolean; selectedMetric?: Metric; onMetricChange?: (metric: Metric) => void
+export default function StatsExplorer({ games, detailed = false, initialMetric }: {
+  games: StatGame[]; detailed?: boolean; initialMetric?: Metric
 }) {
   const [season, setSeason] = useState('')
   const [grade, setGrade] = useState('')
@@ -33,12 +33,10 @@ export default function StatsExplorer({ games, detailed = false, selectedMetric,
   const [from, setFrom] = useState('')
   const [through, setThrough] = useState('')
   const [chosenMetrics, setChosenMetrics] = useState<Metric[] | null>(null)
-  const timelineMetrics = chosenMetrics ?? (selectedMetric ? [selectedMetric] : ['pts', 'reb', 'ast'])
+  const timelineMetrics = chosenMetrics ?? (initialMetric ? [initialMetric] : ['pts', 'reb', 'ast'])
   const setTimelineMetrics = setChosenMetrics
   const [view, setView] = useState<'timeline' | 'comparison'>('timeline')
-  const [localMetric, setLocalMetric] = useState<Metric>('pts')
-  const metric = selectedMetric ?? localMetric
-  const setMetric = onMetricChange ?? setLocalMetric
+  const [metric, setMetric] = useState<Metric>(initialMetric ?? 'pts')
   const [group, setGroup] = useState('game')
   const [aggregate, setAggregate] = useState('average')
   const [selected, setSelected] = useState('')

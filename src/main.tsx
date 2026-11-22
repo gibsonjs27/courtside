@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import type { Session } from '@supabase/supabase-js'
 import Admin, { SignIn } from './Admin'
 import PublicView from './PublicView'
+import StatsExplorer from './StatsExplorer'
 import { discardPending, fetchPublic, local, record, supabase, sync, type LocalState } from './store'
 import type { GameWrite, Game } from './model'
 import './styles.css'
@@ -37,7 +38,21 @@ function App() {
     setTheme(chosen)
     try { localStorage.setItem(themeKey, chosen) } catch { /* Use the choice for this visit. */ }
   }
-  const [admin, setAdmin] = useState(location.hash === '#admin')
+  const [hash, setHash] = useState(() => location.hash)
+  const [page, search] = hash.split('?', 2)
+  const admin = page === '#admin'
+  const statsPage = page === '#stats-explorer'
+  const metric = new URLSearchParams(search).get('metric')
+  const initialMetric = metric === 'pts' || metric === 'reb' || metric === 'ast' ? metric : undefined
+
+  useEffect(() => {
+    if (statsPage) {
+      window.scrollTo(0, 0)
+      document.title = 'Courtside — All Stats'
+    } else {
+      document.title = 'Courtside — Player Tracker'
+    }
+  }, [statsPage])
   const [session, setSession] = useState<Session | null>(null)
   const [verified, setVerified] = useState<string>()
   const [authReady, setAuthReady] = useState(demo)
@@ -54,7 +69,7 @@ function App() {
   const scoped = privateState?.scope === scope ? privateState?.state : undefined
 
   useEffect(() => {
-    const navigate = () => { setAdmin(location.hash === '#admin'); setNotice('') }
+    const navigate = () => { setHash(location.hash); setNotice('') }
     const network = () => setOnline(navigator.onLine)
     addEventListener('hashchange', navigate)
     addEventListener('online', network)
@@ -167,8 +182,8 @@ function App() {
     <header className="site-header"><div className="shell nav">
       <a className="brand" href="#profile" aria-label="Courtside home"><Ball/><span>COURTSIDE</span><small>PLAYER TRACKER</small></a>
       <nav aria-label="Main navigation">
-        <a href="#profile" aria-current={!admin ? 'page' : undefined}>Player profile</a>
-        <a href="#stats-explorer">Stats</a>
+        <a href="#profile" aria-current={!admin && !statsPage ? 'page' : undefined}>Player profile</a>
+        <a href="#stats-explorer" aria-current={statsPage ? 'page' : undefined}>Stats</a>
         <a href="#admin" aria-current={admin ? 'page' : undefined}>Admin</a>
       </nav>
       <select className="theme-select" aria-label="Color theme" value={theme} onChange={event => changeTheme(event.target.value)}>
@@ -177,7 +192,11 @@ function App() {
     </div></header>
     <main className="shell">
       {(notice || (admin && scope && syncError)) && <div className="notice" role="alert">{notice || 'Sync issue. ' + syncError}</div>}
-      {!admin ? <PublicView profile={publicState?.profile ?? null} games={publicState?.publicGames ?? []}/>
+      {statsPage ? <section className="stats-page" aria-labelledby="all-stats-title">
+        <a href="#profile">Back to player profile</a>
+        <h1 id="all-stats-title">All Stats</h1>
+        <StatsExplorer key={initialMetric ?? 'all'} games={publicState?.publicGames ?? []} initialMetric={initialMetric} />
+      </section> : !admin ? <PublicView profile={publicState?.profile ?? null} games={publicState?.publicGames ?? []}/>
         : scope && scoped ? <Admin key={scope} state={scoped} write={write} retry={() => setRefresh(value => value + 1)} discard={() => void discard()} onSignOut={demo ? undefined : () => void signOut()} offline={!online}/>
         : !authReady || scope ? <p role="status">Opening game tracker…</p>
         : session ? <section className="panel credentials"><h1>Admin access</h1><p>{online ? 'Checking tracker access…' : 'Connect to the internet to verify this account.'}</p><button onClick={() => void signOut()}>Sign out</button></section>
