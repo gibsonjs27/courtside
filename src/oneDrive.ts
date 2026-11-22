@@ -60,6 +60,10 @@ export function finishOneDriveConnection() {
   return exchange
 }
 
+class GraphError extends Error {
+  constructor(readonly status: number) { super('OneDrive could not complete the request (' + status + ').') }
+}
+
 async function request<T>(path: string, init: RequestInit = {}, ignoreMissing = false): Promise<T> {
   if (!oneDriveConnected()) throw new Error('Connect OneDrive again to continue.')
   const headers = new Headers(init.headers)
@@ -70,7 +74,7 @@ async function request<T>(path: string, init: RequestInit = {}, ignoreMissing = 
     throw new Error('Your OneDrive session expired. Connect again to continue.')
   }
   if (response.status === 204 || (ignoreMissing && response.status === 404)) return undefined as T
-  if (!response.ok) throw new Error('OneDrive could not complete the request (' + response.status + ').')
+  if (!response.ok) throw new GraphError(response.status)
   return response.json() as Promise<T>
 }
 
@@ -88,26 +92,39 @@ export async function uploadOneDriveClip(file: File) {
   })
 }
 
-export function allowedEmbed(input?: string | null) {
+export function allowedVideoLink(input?: string | null) {
   if (!input) return null
   try {
     const url = new URL(input)
-    return url.protocol === 'https:' && url.host === 'onedrive.live.com' && url.pathname === '/embed'
-      && !url.username && !url.password ? url.href : null
+    if (url.protocol !== 'https:' || url.username || url.password || url.port) return null
+    if (url.host === 'onedrive.live.com' && ['/embed', '/'].includes(url.pathname) && url.search) return url.href
+    if (url.host === '1drv.ms' && /^\/(?:v\/)?[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*$/.test(url.pathname)) return url.href
+    return null
   } catch { return null }
 }
 
 export async function shareOneDriveClip(item: string) {
-  const permission = await request<{ id: string; link: { webUrl?: string; webHtml?: string } }>(itemPath(item) + '/createLink', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'embed', scope: 'anonymous' }),
-  })
-  const iframe = new DOMParser().parseFromString(permission.link.webHtml ?? '', 'text/html').querySelector('iframe')
-  const url = allowedEmbed(iframe?.getAttribute('src') ?? permission.link.webUrl)
-  if (!url || !permission.id) {
-    if (permission.id) await revokeOneDriveClip(item, permission.id)
-    throw new Error('OneDrive did not return a supported public video embed.')
+  const createLink = (type: 'embed' | 'view') =>
+    request<{ id: string; link?: { webUrl?: string; webHtml?: string } }>(itemPath(item) + '/createLink', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(type === 'embed' ? { type } : { type, scope: 'anonymous' }),
+    })
+  let embedded
+  try { embedded = await createLink('embed') }
+  catch (error) {
+    if (!(error instanceof GraphError) || ![400, 403, 405, 501].includes(error.status)) throw error
   }
-  return { url, permissionId: permission.id }
+  if (embedded?.id) {
+    const iframe = new DOMParser().parseFromString(embedded.link?.webHtml ?? '', 'text/html').querySelector('iframe')
+    const url = allowedVideoLink(iframe?.getAttribute('src')) ?? allowedVideoLink(embedded.link?.webUrl)
+    if (url) return { url, permissionId: embedded.id, inline: true }
+    await revokeOneDriveClip(item, embedded.id)
+  }
+  const shared = await createLink('view')
+  const url = allowedVideoLink(shared.link?.webUrl)
+  if (url && shared.id) return { url, permissionId: shared.id, inline: false }
+  if (shared.id) await revokeOneDriveClip(item, shared.id)
+  throw new Error('OneDrive did not return a usable public video link.')
 }
 
 export const revokeOneDriveClip = (item: string, permission: string) =>

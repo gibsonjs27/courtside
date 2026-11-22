@@ -1,19 +1,21 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { supabase } from './store'
-import { allowedEmbed, connectOneDrive, finishOneDriveConnection, oneDriveConfigured, oneDriveConnected,
+import { allowedVideoLink, connectOneDrive, finishOneDriveConnection, oneDriveConfigured, oneDriveConnected,
   revokeOneDriveClip, shareOneDriveClip, trashOneDriveClip, uploadOneDriveClip } from './oneDrive'
 
-type Highlight = { id: string; title: string; embed_url: string; opponent?: string; date?: string }
+type Highlight = { id: string; title: string; embed_url: string; inline_player?: boolean; opponent?: string; date?: string }
 type Clip = { id: string; title: string; item_id: string; embed_url: string | null; permission_id: string | null }
 const message = (error: unknown) => error instanceof Error ? error.message : String(error)
 const check = ({ error }: { error: { message: string } | null }) => { if (error) throw new Error(error.message) }
 
-function Player({ title, url }: { title: string; url: string }) {
+function Player({ title, url, inline }: { title: string; url: string; inline: boolean }) {
   const [playing, setPlaying] = useState(false)
-  const embed = allowedEmbed(url)
+  const embed = allowedVideoLink(url)
   if (!embed) return null
+  const external = <a href={embed} target="_blank" rel="noreferrer">{inline ? 'Open in OneDrive' : 'Watch ' + title + ' in OneDrive'}</a>
+  if (!inline) return external
   return playing
-    ? <iframe className="highlight-player" src={embed} title={title} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="no-referrer" />
+    ? <><iframe className="highlight-player" src={embed} title={title} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="no-referrer" />{external}</>
     : <button type="button" className="highlight-play" onClick={() => setPlaying(true)}>Play {title}</button>
 }
 
@@ -23,14 +25,14 @@ export function PublicHighlights() {
   useEffect(() => {
     if (!supabase || !oneDriveConfigured) return
     let active = true
-    void supabase.from('published_highlights').select('id,title,embed_url,opponent,date').order('created_at', { ascending: false })
+    void supabase.from('published_highlights').select('id,title,embed_url,opponent,date,inline_player').order('created_at', { ascending: false })
       .then(({ data, error }) => {
         if (!active) return
         if (error) {
           setStatus('error')
           return
         }
-        const playable = (data ?? []).filter(clip => allowedEmbed(clip.embed_url))
+        const playable = (data ?? []).filter(clip => allowedVideoLink(clip.embed_url))
         setClips(playable)
         setStatus(playable.length || !data?.length ? 'ready' : 'error')
       })
@@ -41,7 +43,7 @@ export function PublicHighlights() {
     <header className="panel-head"><h2 id="highlights-title">Highlights</h2></header>
     {clips.length ? <div className="highlight-grid">{clips.map(clip => <article key={clip.id}>
       <h3>{clip.title}</h3>{clip.opponent && <p>{clip.opponent}{clip.date ? ' · ' + clip.date : ''}</p>}
-      <Player key={clip.embed_url} title={clip.title} url={clip.embed_url} />
+      <Player key={clip.embed_url} title={clip.title} url={clip.embed_url} inline={clip.inline_player !== false} />
     </article>)}</div> : <p className="empty" role="status">{status === 'loading' ? 'Loading highlights…'
       : status === 'error' ? 'Highlights couldn’t load. Try refreshing the page.'
       : 'No clips have been published yet.'}</p>}
@@ -58,9 +60,11 @@ export default function GameClips({ gameId, pending, onClipsLoaded }: { gameId: 
   const client = supabase
   const load = async () => {
     if (!client) return
-    const result = await client.from('game_clips').select('id,title,item_id,embed_url,permission_id').eq('game_id', gameId).order('created_at', { ascending: false })
+    const result = await client.from('game_clips').select('id,title,item_id,embed_url,permission_id,video_url,video_permission_id').eq('game_id', gameId).order('created_at', { ascending: false })
     check(result)
-    setClips(result.data ?? [])
+    setClips((result.data ?? []).map(clip => ({
+      ...clip, embed_url: clip.video_url ?? clip.embed_url, permission_id: clip.video_permission_id ?? clip.permission_id,
+    })))
     onClipsLoaded(gameId, result.data?.length ?? 0)
     setLoaded(true)
   }
@@ -134,10 +138,10 @@ export default function GameClips({ gameId, pending, onClipsLoaded }: { gameId: 
           void run(async () => {
             if (clip.permission_id) {
               await revokeOneDriveClip(clip.item_id, clip.permission_id)
-              check(await client.from('game_clips').update({ embed_url: null, permission_id: null }).eq('id', clip.id))
+              check(await client.from('game_clips').update({ embed_url: null, permission_id: null, video_url: null, video_permission_id: null }).eq('id', clip.id))
             } else {
               const link = await shareOneDriveClip(clip.item_id)
-              check(await client.from('game_clips').update({ embed_url: link.url, permission_id: link.permissionId }).eq('id', clip.id))
+              check(await client.from('game_clips').update({ video_url: link.url, video_permission_id: link.permissionId, inline_player: link.inline }).eq('id', clip.id))
             }
             await load()
           })
