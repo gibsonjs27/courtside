@@ -158,7 +158,14 @@ export default function Admin({ state, write, retry, discard, onSignOut, offline
                 </details>
               </> : <>
                 <div className="live-totals"><strong>{points(totals(game))} PTS</strong><span>{totals(game).reb} REB</span><span>{totals(game).ast} AST</span><span>{totals(game).stl} STL</span><span>{totals(game).blk} BLK</span></div>
-                <button className="primary" disabled={busy} onClick={() => setDraft({ ...game, mode: 'box', counts: totals(game) })}>Edit</button>
+                <div className="action-row">
+                  <button className="primary" disabled={busy} onClick={() => setDraft({ ...game, mode: 'box', counts: totals(game) })}>Edit</button>
+                  {game.published && <button disabled={busy} onClick={() => {
+                    if (confirm('Remove the game against ' + game.opponent + ' from the public profile? You can publish it again from Admin.')) {
+                      void save('unpublish', game)
+                    }
+                  }}>Unpublish</button>}
+                </div>
               </>}
               {(game.mode === 'live' || game.events.length > 0) && <details className="play-log"><summary>Play log ({game.events.length})</summary>
                 <ol reversed>{[...game.events].reverse().map(play => <li key={play.id}>{play.period <= 4 ? 'Q' + play.period : 'OT' + (play.period - 4)} · {statLabels[play.stat]} · {new Date(play.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</li>)}</ol>
