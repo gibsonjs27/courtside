@@ -3,7 +3,7 @@ import { gameResult } from './GameLog'
 import { useState } from 'react'
 import { grades, venues, seasonOf, newest, statLabels, stats, type Counts, type PublicGame } from './model'
 
-type StatGame = PublicGame & { box?: Counts }
+type StatGame = PublicGame
 const basic = [
   ['pts', 'Points'], ['reb', 'Rebounds'], ['ast', 'Assists'], ['stl', 'Steals'], ['blk', 'Blocks'],
 ] as const
@@ -40,9 +40,10 @@ export default function StatsExplorer({ games, detailed = false, initialMetric }
   const [group, setGroup] = useState('game')
   const [aggregate, setAggregate] = useState('average')
   const [selected, setSelected] = useState('')
-  const metrics: ReadonlyArray<readonly [Metric, string]> = detailed
-    ? [...basic, ...stats.filter(stat => !basic.some(([key]) => key === stat)).map(stat => [stat, statLabels[stat]] as const), ...shooting]
-    : basic
+  const metrics: ReadonlyArray<readonly [Metric, string]> = [
+    ...basic, ...stats.filter(stat => !basic.some(([key]) => key === stat)).map(stat => [stat, statLabels[stat]] as const), ...shooting,
+  ]
+  const available = (game: StatGame, stat: Metric) => basic.some(([key]) => key === stat) || Boolean(game.box)
   const isRate = shooting.some(([key]) => key === metric)
   const seasons = [...new Set(games.map(game => seasonOf(game.date)))].sort().reverse()
   const invalidDates = Boolean(from && through && from > through)
@@ -53,6 +54,7 @@ export default function StatsExplorer({ games, detailed = false, initialMetric }
   const series = metrics.filter(([key]) => timelineMetrics.includes(key)).map(([key, label]) => {
     const percent = shooting.some(([id]) => id === key)
     const values = chronological.map(game => {
+      if (!available(game, key)) return null
       if (!percent) return sums([game], key)
       const { made, attempts } = rate([game], key)
       return attempts ? 100 * made / attempts : null
@@ -75,7 +77,8 @@ export default function StatsExplorer({ games, detailed = false, initialMetric }
       const { made, attempts } = rate(subset, metric)
       return attempts ? 100 * made / attempts : null
     }
-    return subset.length ? sums(subset, metric) / (aggregate === 'total' ? 1 : subset.length) : null
+    const included = subset.filter(game => available(game, metric))
+    return included.length ? sums(included, metric) / (aggregate === 'total' ? 1 : included.length) : null
   }
   const rows = [...groups.values()].map(entry => ({ ...entry, value: value(entry.games) }))
   const max = isRate ? 100 : Math.max(1, ...rows.map(row => row.value ?? 0))
@@ -85,7 +88,7 @@ export default function StatsExplorer({ games, detailed = false, initialMetric }
   const ties = filtered.length - wins - losses
 
   return <section className="panel stats-explorer" aria-label={detailed ? 'Detailed stats' : 'Stats explorer'}>
-    <header className="panel-head"><div><h2>{detailed ? 'Detailed stats' : 'Stats explorer'}</h2><p>{detailed ? 'Completed games · private box scores' : 'Published game summaries'}</p></div></header>
+    <header className="panel-head"><div><h2>{detailed ? 'Detailed stats' : 'Stats explorer'}</h2><p>{detailed ? 'Completed games · admin box scores' : 'Published game stats'}</p></div></header>
     <div className="stats-body">
       <div className="stats-filters">
         <label>Season<select name="season" value={season} onChange={e => setSeason(e.target.value)}><option value="">Career · all seasons</option>{seasons.map(item => <option key={item}>{item}</option>)}</select></label>
@@ -95,6 +98,7 @@ export default function StatsExplorer({ games, detailed = false, initialMetric }
         <label>From<input type="date" value={from} onChange={e => setFrom(e.target.value)} /></label>
         <label>Through<input type="date" value={through} onChange={e => setThrough(e.target.value)} /></label>
       </div>
+      {!detailed && filtered.some(game => !game.box) && <p className="stats-coverage">Some games have summary stats only. Missing box-score values show as —.</p>}
       {invalidDates && <p role="alert" className="empty">The end date must be on or after the start date.</p>}
       <div className="action-row chart-views">
         <button type="button" aria-pressed={view === 'timeline'} onClick={() => setView('timeline')}>Over time</button>
@@ -128,7 +132,7 @@ export default function StatsExplorer({ games, detailed = false, initialMetric }
           <dl>{metrics.map(([key, label]) => {
             const percentage = shooting.some(([item]) => item === key)
             const result = percentage ? rate([game], key) : null
-            return <div key={key}><dt>{label}</dt><dd>{result ? result.made + '/' + result.attempts : sums([game], key)}</dd></div>
+            return <div key={key}><dt>{label}</dt><dd>{!available(game, key) ? '—' : result ? result.made + '/' + result.attempts : sums([game], key)}</dd></div>
           })}</dl>
         </section>}
       </> : <p className="empty">No games match these filters.</p>}

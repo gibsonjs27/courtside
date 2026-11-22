@@ -372,3 +372,5 @@ summary { font-weight: 750; }
 }
 .all-stats-link:hover { background: var(--tint); border-color: var(--accent); }
 .stats-page h1 { margin: 12px 0 16px; font-size: clamp(1.9rem, 5vw, 3rem); }
+
+.stats-coverage { color: var(--muted); font-size: .86rem; margin-top: 12px; }

@@ -140,7 +140,7 @@ export default function Admin({ state, write, retry, discard, onSignOut, offline
       <span role="status">{state.queue.length ? state.queue.length + ' pending sync' : offline ? 'Offline' : onSignOut ? 'Synced' : 'Saved on this device'}</span>
     </div>
     {!!state.queue.length && <details className="queue-tools"><summary>Pending changes</summary><p>Changes are saved on this device. They sync when this workspace is online.</p><div className="action-row"><button onClick={retry}>Retry sync</button><button onClick={exportQueue}>Export queue</button><button disabled={offline || busy} onClick={discard}>Discard pending changes</button></div></details>}
-    {view === 'stats' ? <StatsExplorer detailed games={state.games.filter(game => game.status === 'final').map(game => ({ ...summary(game), box: totals(game) }))} /> :
+    {view === 'stats' ? <StatsExplorer detailed games={state.games.filter(game => game.status === 'final').map(summary)} /> :
     <div className="admin-grid">
       <section className="panel archive"><header className="panel-head"><h2>My games</h2></header>
         {newest(state.games).map(item => <button key={item.id} className={'archive-item ' + (selected === item.id ? 'selected' : '')} onClick={() => { setSelected(item.id); setDraft(undefined); editor.current?.scrollIntoView({ block: 'nearest' }) }} disabled={busy}>
