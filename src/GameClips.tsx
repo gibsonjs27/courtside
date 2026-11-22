@@ -13,11 +13,11 @@ function Player({ title, url, inline }: { title: string; url: string; inline: bo
   const embed = allowedVideoLink(url)
   if (!embed) return null
   const external = <a className="highlight-external" href={embed} target="_blank" rel="noreferrer"
-    aria-label={'Watch ' + title + ' in OneDrive'}>Play in OneDrive ↗</a>
+    aria-label={'Watch ' + title + ' in OneDrive'}>{inline ? 'Open in OneDrive' : 'Play in OneDrive'} ↗</a>
   if (!inline) return external
   return <>
     <div className="highlight-actions">
-      <button type="button" className="highlight-play" aria-expanded={playing} onClick={() => setPlaying(!playing)}>
+      <button type="button" className="primary highlight-play" aria-expanded={playing} onClick={() => setPlaying(!playing)}>
         {playing ? 'Close player' : 'Play here'}
       </button>
       {external}
