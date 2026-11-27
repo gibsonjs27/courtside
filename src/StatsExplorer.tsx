@@ -1,7 +1,6 @@
 import MetricsTimeline from './MetricsTimeline'
-import { gameResult } from './GameLog'
 import { useState } from 'react'
-import { grades, venues, seasonOf, newest, statLabels, stats, type Counts, type PublicGame } from './model'
+import { gameResult, grades, venues, seasonOf, newest, statLabels, stats, type Counts, type PublicGame } from './model'
 
 type StatGame = PublicGame
 const basic = [

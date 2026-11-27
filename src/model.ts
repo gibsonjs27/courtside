@@ -17,6 +17,7 @@ export type Game = GameContext & {
 export type PublicGame = GameContext & Pick<Game, 'id' | 'date' | 'opponent' | 'us' | 'them'> & {
   pts: number; reb: number; ast: number; stl: number; blk: number; box?: Counts | null;
 }
+export const gameResult = (game: PublicGame) => game.us > game.them ? 'W' : game.us < game.them ? 'L' : 'T'
 export type Profile = { name: string; team: string; number: string; position: string; season: string }
 export type Command = { id: string; kind: 'save' | 'publish' | 'unpublish' | 'delete'; game: Game }
 export type GameWrite = Command['kind'] | 'save-and-publish'

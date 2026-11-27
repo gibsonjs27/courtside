@@ -46,7 +46,7 @@ export default function PublicView({ profile, games }: { profile: Profile | null
       </div>
     </section>
     <div className="public-grid">
-      <GameLog games={allGames} />
+      <GameLog games={allGames} profile={profile} />
       <section className="panel trend" aria-labelledby="trend-title">
         <header className="panel-head"><div><h2 id="trend-title">Scoring trend</h2><p>Points over the last {recent.length || 5} games</p></div><a className="all-stats-link" href="#stats-explorer">All Stats</a></header>
         {recent.length ? <>

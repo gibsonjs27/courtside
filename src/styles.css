@@ -340,24 +340,48 @@ summary { font-weight: 750; }
 .clip-list li > span { margin-inline-start: 10px; color: var(--muted); }
 .clip-list .action-row { margin-top: 8px; }
 
-.game-log .table-scroll { container-type: inline-size; }
-.game-highlights-toggle {
-  display: block;
-  min-height: 34px;
-  margin-top: 4px;
-  padding: 3px 8px;
+.game-log-row { cursor: pointer; }
+.game-log-row:hover, .game-log-row:focus-within { background: var(--surface); }
+.game-summary-toggle {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
   color: var(--accent);
-  font-size: .76rem;
+  text-decoration: underline;
+  text-underline-offset: .2em;
+  font: inherit;
 }
-.game-highlights-row td:first-child { padding: 0; }
-.game-highlights-panel {
-  position: sticky;
-  left: 0;
-  width: min(100%, 100cqi);
+
+.game-summary {
+  width: min(680px, calc(100% - 24px));
+  max-height: calc(100dvh - 24px);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+  color: inherit;
+  overscroll-behavior: contain;
+}
+.game-summary::backdrop { background: rgb(0 0 0 / .75); }
+.game-summary .panel-head { gap: 12px; }
+.game-summary-body { display: grid; gap: 20px; padding: clamp(12px, 4vw, 24px); }
+.summary-scoreboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 14px 8px;
+  border-radius: 8px;
   background: var(--surface);
-  text-align: left;
-  white-space: normal;
+  text-align: center;
 }
+.summary-scoreboard div { display: grid; gap: 4px; font-weight: 750; overflow-wrap: anywhere; }
+.summary-scoreboard strong { font-size: clamp(2rem, 8vw, 3rem); font-variant-numeric: tabular-nums; line-height: 1; }
+.summary-table caption { padding-bottom: 8px; text-align: left; font-weight: 800; }
+.summary-table th:first-child, .summary-table td:last-child, .summary-table th:last-child { padding-inline: 4px; }
+.summary-table thead th:first-child { text-align: center; }
+.summary-table:has(tbody th) thead th:first-child { text-align: left; }
 
 .all-stats-link {
   display: inline-flex;
