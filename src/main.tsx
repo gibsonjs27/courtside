@@ -192,15 +192,17 @@ function App() {
     </div></header>
     <main className="shell">
       {(notice || (admin && scope && syncError)) && <div className="notice" role="alert">{notice || 'Sync issue. ' + syncError}</div>}
-      {statsPage ? <section className="stats-page" aria-labelledby="all-stats-title">
-        <a href="#profile">Back to player profile</a>
-        <h1 id="all-stats-title">All Stats</h1>
-        <StatsExplorer key={initialMetric ?? 'all'} games={publicState?.publicGames ?? []} initialMetric={initialMetric} />
-      </section> : !admin ? <PublicView profile={publicState?.profile ?? null} games={publicState?.publicGames ?? []}/>
-        : scope && scoped ? <Admin key={scope} state={scoped} write={write} retry={() => setRefresh(value => value + 1)} discard={() => void discard()} onSignOut={demo ? undefined : () => void signOut()} offline={!online}/>
-        : !authReady || scope ? <p role="status">Opening game tracker…</p>
-        : session ? <section className="panel credentials"><h1>Admin access</h1><p>{online ? 'Checking tracker access…' : 'Connect to the internet to verify this account.'}</p><button onClick={() => void signOut()}>Sign out</button></section>
-        : <SignIn onSignIn={signIn}/>}
+      <div className="view-enter" key={statsPage ? 'stats' : admin ? 'admin' : 'profile'}>
+        {statsPage ? <section className="stats-page" aria-labelledby="all-stats-title">
+          <a href="#profile">Back to player profile</a>
+          <h1 id="all-stats-title">All Stats</h1>
+          <StatsExplorer key={initialMetric ?? 'all'} games={publicState?.publicGames ?? []} initialMetric={initialMetric} />
+        </section> : !admin ? <PublicView profile={publicState?.profile ?? null} games={publicState?.publicGames ?? []}/>
+          : scope && scoped ? <Admin key={scope} state={scoped} write={write} retry={() => setRefresh(value => value + 1)} discard={() => void discard()} onSignOut={demo ? undefined : () => void signOut()} offline={!online}/>
+          : !authReady || scope ? <p role="status">Opening game tracker…</p>
+          : session ? <section className="panel credentials"><h1>Admin access</h1><p>{online ? 'Checking tracker access…' : 'Connect to the internet to verify this account.'}</p><button onClick={() => void signOut()}>Sign out</button></section>
+          : <SignIn onSignIn={signIn}/>}
+      </div>
     </main>
     <footer className="shell site-footer"><span><Ball/> Courtside</span>{demo && <span>Demo mode · sample player and games</span>}</footer>
   </>

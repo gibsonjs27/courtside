@@ -140,8 +140,8 @@ export default function Admin({ state, write, retry, discard, onSignOut, offline
       <span role="status">{state.queue.length ? state.queue.length + ' pending sync' : offline ? 'Offline' : onSignOut ? 'Synced' : 'Saved on this device'}</span>
     </div>
     {!!state.queue.length && <details className="queue-tools"><summary>Pending changes</summary><p>Changes are saved on this device. They sync when this workspace is online.</p><div className="action-row"><button onClick={retry}>Retry sync</button><button onClick={exportQueue}>Export queue</button><button disabled={offline || busy} onClick={discard}>Discard pending changes</button></div></details>}
-    {view === 'stats' ? <StatsExplorer detailed games={state.games.filter(game => game.status === 'final').map(summary)} /> :
-    <div className="admin-grid">
+    {view === 'stats' ? <div className="view-enter"><StatsExplorer detailed games={state.games.filter(game => game.status === 'final').map(summary)} /></div> :
+    <div className="admin-grid view-enter">
       <section className="panel archive"><header className="panel-head"><h2>My games</h2></header>
         {newest(state.games).map(item => <button key={item.id} className={'archive-item ' + (selected === item.id ? 'selected' : '')} onClick={() => { setSelected(item.id); setDraft(undefined); editor.current?.scrollIntoView({ block: 'nearest' }) }} disabled={busy}>
           <strong>{item.opponent}</strong><span>{gameDate(item.date)} · {item.status === 'live' ? 'In progress' : item.published ? 'Published' : 'Private'}</span>
@@ -150,8 +150,8 @@ export default function Admin({ state, write, retry, discard, onSignOut, offline
       </section>
       <section className="panel editor" ref={editor}>
         {!current ? <div className="editor-body"><h2>Ready to track?</h2><p>Select a game or start a new one.</p></div> : <>
-          <header className="panel-head"><div><h2>{current.opponent || (current.mode === 'live' ? 'New live game' : 'Post-game entry')}</h2><p>{current.rev ? (current.status === 'live' ? 'In progress' : 'Final') + ' · ' + (current.published ? 'Published' : 'Private') : 'Game details'}</p></div></header>
-          <div className="editor-body">
+          <header className="panel-head view-enter" key={current.id}><div><h2>{current.opponent || (current.mode === 'live' ? 'New live game' : 'Post-game entry')}</h2><p>{current.rev ? (current.status === 'live' ? 'In progress' : 'Final') + ' · ' + (current.published ? 'Published' : 'Private') : 'Game details'}</p></div></header>
+          <div className="editor-body view-enter" key={current.id + (draft ? "-edit" : "-" + current.status)}>
             {draft ? <BoxForm key={draft.id + draft.rev} initial={draft} busy={busy}
               onSave={(next, kind) => void save(kind, next)} onCancel={() => setDraft(undefined)} /> : game && <>
               {game.status === 'live' ? <>

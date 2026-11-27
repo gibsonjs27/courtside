@@ -1,3 +1,4 @@
+import { curvePath } from './chartCurve'
 import GameLog from './GameLog'
 import { useEffect } from 'react'
 import { gameDate, newest, seasonOf, type Profile, type PublicGame } from './model'
@@ -21,6 +22,8 @@ export default function PublicView({ profile, games }: { profile: Profile | null
   const losses = sorted.filter(game => game.us < game.them).length
   const ties = sorted.length - wins - losses
   const peak = Math.max(25, ...recent.map(game => game.pts))
+  const scoringLine = curvePath(recent.map(game => game.pts),
+    index => (index + 0.5) * 100 / recent.length, points => 169 * (1 - points / peak))
   const player = profile?.name.trim().split(/\s+/)
   const showPortrait = player?.[0].toLowerCase() === 'rhyder' && profile?.number.trim() === '24'
   return <>
@@ -58,6 +61,9 @@ export default function PublicView({ profile, games }: { profile: Profile | null
                 <small>{gameDate(game.date)}</small>
               </div>
             )}</div>
+            {recent.length > 1 && <svg className="scoring-line" viewBox="0 0 100 169" preserveAspectRatio="none" aria-hidden="true">
+              <path d={scoringLine} fill="none" stroke="currentColor" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+            </svg>}
           </div>
           <div className="trend-foot"><span className="trend-dot"/> Most recent game</div>
         </> : <p className="empty">A scoring trend will appear after the first published game.</p>}

@@ -103,10 +103,10 @@ export default function StatsExplorer({ games, detailed = false, initialMetric }
         <button type="button" aria-pressed={view === 'timeline'} onClick={() => setView('timeline')}>Over time</button>
         <button type="button" aria-pressed={view === 'comparison'} onClick={() => setView('comparison')}>Compare groups</button>
       </div>
-      {view === 'timeline' ? <fieldset className="timeline-metrics"><legend>Metrics to plot</legend>
+      {view === 'timeline' ? <fieldset className="timeline-metrics view-enter"><legend>Metrics to plot</legend>
         <div className="action-row"><button type="button" onClick={() => setTimelineMetrics(metrics.map(([key]) => key))}>Select all</button><button type="button" onClick={() => setTimelineMetrics([])}>Clear metrics</button></div>
         <div className="metric-options">{metrics.map(([key, label]) => <label key={key}><input type="checkbox" checked={timelineMetrics.includes(key)} onChange={e => setTimelineMetrics(e.target.checked ? [...timelineMetrics, key] : timelineMetrics.filter(item => item !== key))} />{label}{shooting.some(([id]) => id === key) ? ' %' : ''}</label>)}</div>
-      </fieldset> : <div className="stats-filters">
+      </fieldset> : <div className="stats-filters view-enter">
         <label>Chart stat<select name="metric" value={metric} onChange={e => setMetric(e.target.value as Metric)}>{metrics.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
         <label>Group chart by<select name="group" value={group} onChange={e => setGroup(e.target.value)}><option value="game">Game</option><option value="season">Season</option><option value="grade">Grade</option><option value="venue">Venue</option></select></label>
         <label>Show<select name="aggregate" value={aggregate} disabled={isRate} onChange={e => setAggregate(e.target.value)}>{isRate && <option value={aggregate}>Shooting percentage</option>}{!isRate && <><option value="average">Per-game averages</option><option value="total">Totals</option></>}</select></label>
@@ -117,7 +117,7 @@ export default function StatsExplorer({ games, detailed = false, initialMetric }
         {view === 'comparison' && <span><strong>{display(value(filtered), isRate)}</strong> {metrics.find(([key]) => key === metric)?.[1]}{isRate || aggregate === 'total' ? '' : ' / game'}</span>}
       </div>
       {rows.length ? <>
-        {view === 'timeline' ? <MetricsTimeline games={chronological} series={series}/> : <div className="stats-chart" aria-label="Stat comparison">
+        {view === 'timeline' ? <MetricsTimeline games={chronological} series={series}/> : <div className="stats-chart view-enter" aria-label="Stat comparison">
           {rows.map(row => <div className="stats-chart-row" key={row.games[0].id}>
             {group === 'game' ? <button type="button" aria-pressed={selected === row.games[0].id} onClick={() => setSelected(row.games[0].id)}>{row.label}</button> : <span>{row.label} · {row.games.length} {row.games.length === 1 ? 'game' : 'games'}</span>}
             <div className="stats-track" aria-hidden="true"><div style={{ width: (row.value ?? 0) / max * 100 + '%' }} /></div>
@@ -125,7 +125,7 @@ export default function StatsExplorer({ games, detailed = false, initialMetric }
           </div>)}
         </div>}
         <label className="game-drilldown">Game details<select value={game?.id ?? ''} onChange={e => setSelected(e.target.value)}><option value="">Choose a game</option>{filtered.map(item => <option key={item.id} value={item.id}>{item.opponent} · {item.date}</option>)}</select></label>
-        {game && <section className="stat-detail" aria-label="Game box score">
+        {game && <section className="stat-detail view-enter" key={game.id} aria-label="Game box score">
           <h3>{game.opponent} · {game.us}–{game.them}</h3>
           <p>{game.date} · {game.grade ? 'Grade ' + game.grade : 'Unspecified grade'} · {game.venue || 'Unspecified venue'}</p>
           <dl>{metrics.map(([key, label]) => {

@@ -1,3 +1,4 @@
+import { curvePath } from './chartCurve'
 import type { Metric } from './StatsExplorer'
 import type { PublicGame } from './model'
 
@@ -31,7 +32,7 @@ export default function MetricsTimeline({ games, series }: { games: PublicGame[]
           </g>)}
           {ticks.map((date, i) => <text key={date} x={ticks.length === 1 ? 361 : i ? 680 : 42} y="188" textAnchor={ticks.length === 1 ? 'middle' : i ? 'end' : 'start'}>{date}</text>)}
           {plots.map(({ key, label, values, index }) => <g key={key} style={{ color: colors[index % colors.length] }}>
-            <path d={values.map((v, i) => v === null ? '' : (i > 0 && values[i - 1] !== null ? 'L' : 'M') + x(i) + ' ' + y(v)).join(' ')} fill="none" stroke="currentColor" strokeWidth="2.5" strokeDasharray={dashPatterns[Math.floor(index / colors.length) % dashPatterns.length]} />
+            <path d={curvePath(values, x, y)} fill="none" stroke="currentColor" strokeWidth="2.5" strokeDasharray={dashPatterns[Math.floor(index / colors.length) % dashPatterns.length]} />
             {values.map((v, i) => v === null ? null : <circle key={games[i].id} cx={x(i)} cy={y(v)} r="4" fill="currentColor"><title>{games[i].date} · {games[i].opponent} · {label} {Number(v.toFixed(1))}{percent ? '%' : ''}</title></circle>)}
           </g>)}
         </svg>
