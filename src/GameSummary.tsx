@@ -18,7 +18,8 @@ export default function GameSummary({ game, profile, highlights, onClose }: {
   const resultLabel = { W: 'Win', L: 'Loss', T: 'Tie' }[result]
   const box = game.box
   const shooting = box && [
-    ['FG', box.two + box.three, box.missTwo + box.missThree],
+    ['Total FG (2PT + 3PT)', box.two + box.three, box.missTwo + box.missThree],
+    ['2PT', box.two, box.missTwo],
     ['3PT', box.three, box.missThree],
     ['FT', box.free, box.missFree],
   ] as const
@@ -48,7 +49,7 @@ export default function GameSummary({ game, profile, highlights, onClose }: {
       </table>
       {shooting ? <table className="game-table summary-table">
         <caption>Shooting</caption>
-        <thead><tr><th scope="col">Shot</th><th scope="col">Made</th><th scope="col">Attempts</th><th scope="col">Pct</th></tr></thead>
+        <thead><tr><th scope="col">Category</th><th scope="col">Made</th><th scope="col">Attempts</th><th scope="col">Pct</th></tr></thead>
         <tbody>{shooting.map(([label, made, missed]) => {
           const attempts = made + missed
           return <tr key={label}><th scope="row">{label}</th><td>{made}</td><td>{attempts}</td><td>{attempts ? (100 * made / attempts).toFixed(1) + '%' : '—'}</td></tr>
